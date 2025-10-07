@@ -1,0 +1,46 @@
+{
+  "role": "Professional",
+  "bullets": [
+    "User Research (qualitative & quantitative)",
+    "Interaction & Visual Design (Figma, Sketch, Adobe CC)",
+    "Design Systems & Component Libraries",
+    "Usability Testing & A/B Experiments",
+    "Information Architecture & Content Strategy",
+    "Product Discovery & Stakeholder Workshops",
+    "Accessible & Inclusive Design (WCAG 2.1)",
+    "BrightPath Software \u2013 Cincinnati, OH",
+    "Led redesign of a B2B analytics dashboard, increasing active weekly usage by 34% and cutting task completion time by 22%.",
+    "Established a scalable design system used across 5 product teams, reducing UI inconsistency by 60%.",
+    "Ran 40+ moderated usability sessions and synthesized findings into actionable product requirements.",
+    "Partnered with engineering to implement accessible patterns (ARIA, keyboard navigation), improving WCAG compliance score to AA.",
+    "Nextwave HealthTech \u2013 Columbus, OH",
+    "Built interactive prototypes to support product pitches that secured $3M in Series B funding.",
+    "Introduced analytics dashboards to track user journeys and inform backlog prioritization.",
+    "Cincinnati Children\u2019s Hospital \u2013 Digital Innovation Lab",
+    "Assisted with diary studies and heuristic evaluations for patient portal redesign.",
+    "Helped document accessibility gaps for internal compliance report.",
+    "University of Cincinnati, College of Design, Architecture, Art, and Planning",
+    "Nielsen Norman Group UX Certification (2019)",
+    "Speaker, Midwest UX Conference (2023): \u201cBuilding Design Systems that Actually Get Used\u201d"
+  ],
+  "metrics": {
+    "percentages": [
+      "60%",
+      "34%",
+      "22%"
+    ],
+    "dollar_amounts": [
+      "$3M"
+    ],
+    "counts": {},
+    "time_periods": []
+  },
+  "jd_text": "\u26a0\ufe0f JOB DESCRIPTION TO BE PROVIDED \u26a0\ufe0f\n\nPlease replace this placeholder with the actual job description before running the state machine.",
+  "jd_url": null,
+  "extra_context": "",
+  "settings": {
+    "tone": "concise",
+    "max_len": 30,
+    "variants": 2
+  }
+}
