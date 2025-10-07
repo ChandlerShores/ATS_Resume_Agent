@@ -38,7 +38,7 @@ Or run the setup script:
 **Basic usage with placeholder JD:**
 ```bash
 python scripts/parse_resume.py \
-  --resume john_walker_test.docx \
+  --resume tests/resumes/john_walker_test.docx \
   --role "Senior Financial Analyst" \
   --output tests/john_input.json
 ```
@@ -83,7 +83,7 @@ python scripts/parse_resume.py \
 **Parse all DOCX files:**
 ```bash
 python scripts/batch_parse_resumes.py \
-  --resumes *.docx \
+  --resumes tests/resumes/*.docx \
   --role "Senior Financial Analyst" \
   --output-dir tests/parsed_resumes/
 ```
@@ -99,7 +99,7 @@ python scripts/batch_parse_resumes.py \
 **With job description:**
 ```bash
 python scripts/batch_parse_resumes.py \
-  --resumes *.docx \
+  --resumes tests/resumes/*.docx \
   --role "Engineer" \
   --jd-file jd.txt \
   --output-dir out/
