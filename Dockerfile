@@ -1,60 +1,48 @@
-# Multi-stage build for optimized image size
+# Multi-stage build for production-ready, secure image
 FROM python:3.11-slim as builder
 
-WORKDIR /app
+WORKDIR /build
 
-# Install only build dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+# Copy only requirements first (layer caching)
+COPY pyproject.toml requirements.txt ./
+
+# Install Python dependencies
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
 FROM python:3.11-slim
 
+# Security: Create non-root user
+RUN useradd --create-home --shell /bin/bash --uid 1000 appuser
+
 WORKDIR /app
 
-# Install only runtime dependencies (if any)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get purge -y --auto-remove
-
 # Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
-COPY agents/ ./agents/
-COPY api/ ./api/
-COPY ops/ ./ops/
-COPY orchestrator/ ./orchestrator/
-COPY schemas/ ./schemas/
-COPY scripts/ ./scripts/
-
-# Create necessary directories
-RUN mkdir -p out/cache out/job_cache data
+COPY --chown=appuser:appuser . .
 
 # Make sure scripts are in PATH
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/appuser/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
-# Set Python to run in unbuffered mode (better for Docker logs)
-ENV PYTHONUNBUFFERED=1
+# Security: Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-# Non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# Run FastAPI with uvicorn (bind to 0.0.0.0 inside container is OK)
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Run FastAPI with uvicorn
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

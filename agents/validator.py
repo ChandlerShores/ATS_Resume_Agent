@@ -1,15 +1,14 @@
 """VALIDATOR agent: Checks for grammar, active voice, PII, and unsupported claims."""
 
 import re
-from typing import List, Set
+
 from ops.llm_client import get_llm_client
 from schemas.models import ValidationResult
 
-
 # PII patterns
-EMAIL_PATTERN = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
-PHONE_PATTERN = re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b')
-SSN_PATTERN = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
+PHONE_PATTERN = re.compile(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b")
+SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
 # Filler phrases to remove
 FILLER_PHRASES = [
@@ -20,7 +19,7 @@ FILLER_PHRASES = [
     "helped to",
     "worked on",
     "involved in",
-    "participated in"
+    "participated in",
 ]
 
 # Passive voice indicators
@@ -30,7 +29,7 @@ PASSIVE_INDICATORS = [
     "was tasked",
     "were tasked",
     "was assigned",
-    "were assigned"
+    "were assigned",
 ]
 
 
@@ -70,168 +69,236 @@ Return JSON:
 
 class Validator:
     """Agent for validating and fixing bullet quality issues."""
-    
+
     def __init__(self, llm_client=None):
         self.llm_client = llm_client or get_llm_client()
-    
-    def check_pii(self, text: str) -> List[str]:
+
+    def check_pii(self, text: str) -> list[str]:
         """
         Check for PII in text.
-        
+
         Args:
             text: Text to check
-            
+
         Returns:
             List[str]: PII issues found
         """
         issues = []
-        
+
         if EMAIL_PATTERN.search(text):
             issues.append("PII detected: email address")
-        
+
         if PHONE_PATTERN.search(text):
             issues.append("PII detected: phone number")
-        
+
         if SSN_PATTERN.search(text):
             issues.append("PII detected: SSN")
-        
+
         return issues
-    
-    def check_filler(self, text: str) -> List[str]:
+
+    def check_filler(self, text: str) -> list[str]:
         """
         Check for filler phrases.
-        
+
         Args:
             text: Text to check
-            
+
         Returns:
             List[str]: Filler phrases found
         """
         text_lower = text.lower()
         found = []
-        
+
         for filler in FILLER_PHRASES:
             if filler in text_lower:
                 found.append(f"Filler phrase: '{filler}'")
-        
+
         return found
-    
-    def check_passive_voice(self, text: str) -> List[str]:
+
+    def check_passive_voice(self, text: str) -> list[str]:
         """
         Check for passive voice indicators.
-        
+
         Args:
             text: Text to check
-            
+
         Returns:
             List[str]: Passive voice issues
         """
         text_lower = text.lower()
         found = []
-        
+
         for passive in PASSIVE_INDICATORS:
             if passive in text_lower:
                 found.append(f"Passive phrasing: '{passive}'")
-        
+
         return found
-    
+
     def remove_filler(self, text: str) -> str:
         """
         Remove filler phrases from text.
-        
+
         Args:
             text: Original text
-            
+
         Returns:
             str: Text with filler removed
         """
         result = text
-        
+
         for filler in FILLER_PHRASES:
             # Case-insensitive replacement
             pattern = re.compile(re.escape(filler), re.IGNORECASE)
-            result = pattern.sub('', result)
-        
+            result = pattern.sub("", result)
+
         # Clean up extra spaces
-        result = re.sub(r'\s+', ' ', result).strip()
-        
+        result = re.sub(r"\s+", " ", result).strip()
+
         # Capitalize first letter if needed
         if result and result[0].islower():
             result = result[0].upper() + result[1:]
-        
+
         return result
-    
+
+    def _check_factual_consistency_llm(
+        self, original: str, revised: str, jd_signals=None
+    ) -> list[str]:
+        """
+        Use LLM to check if revised bullet stays factually consistent with original.
+
+        This checks for fabrication issues like:
+        - Invented hard tools/platforms
+        - Activity type mismatches
+        - Borrowed metrics from other bullets
+        - New facts not in original
+
+        Args:
+            original: Original bullet text
+            revised: Revised bullet text
+            jd_signals: JD signals with categorized keywords (optional)
+
+        Returns:
+            List of consistency violation flags
+        """
+        hard_tools_context = ""
+        if jd_signals and jd_signals.hard_tools:
+            hard_tools_context = (
+                f"\n\nKNOWN HARD TOOLS from JD: {', '.join(jd_signals.hard_tools[:10])}\n"
+                f"These are factual claims - flag if added to revised but NOT in original."
+            )
+
+        consistency_prompt = f"""Compare these two resume bullets for factual consistency.
+
+Original: "{original}"
+Revised:  "{revised}"{hard_tools_context}
+
+Check for these FABRICATION TYPES:
+
+1. HARD TOOLS: Specific platforms/tools in revised but NOT in original
+   Examples: Marketo, Salesforce, Monday.com, Google Analytics, Figma, Tableau
+   
+2. ACTIVITY MISMATCH: Fundamental activity changed (e.g., design → marketing)
+
+3. BORROWED METRICS: Numbers in revised that aren't in original
+
+4. INVENTED FACTS: New companies, titles, or achievements not in original
+
+Return JSON:
+{{
+  "is_consistent": true/false,
+  "violations": [
+    {{"type": "hard_tool_fabrication", "detail": "Added Marketo which wasn't in original"}},
+    {{"type": "borrowed_metric", "detail": "Added $3M which isn't in this bullet"}},
+    ...
+  ]
+}}
+
+If consistent, return: {{"is_consistent": true, "violations": []}}"""
+
+        try:
+            response = self.llm_client.complete_json(
+                system_prompt="You are a fact-checker ensuring resume edits don't fabricate information.",
+                user_prompt=consistency_prompt,
+                temperature=0.1,  # Low temperature for consistent checking
+            )
+
+            flags = []
+            if not response.get("is_consistent", True):
+                for violation in response.get("violations", []):
+                    flags.append(f"{violation['type']}: {violation['detail']}")
+
+            return flags
+
+        except Exception as e:
+            # If LLM check fails, log but don't block
+            from ops.logging import logger
+
+            logger.warn(stage="validate", msg=f"Factual consistency check failed: {e}")
+            return []
+
     def validate(
-        self,
-        original: str,
-        revised: str,
-        apply_fixes: bool = True
+        self, original: str, revised: str, apply_fixes: bool = True, jd_signals=None
     ) -> ValidationResult:
         """
-        Validate a revised bullet.
-        
+        Validate a revised bullet with LLM-based factual consistency check.
+
         Args:
             original: Original bullet
             revised: Revised bullet
             apply_fixes: Whether to apply safe fixes
-            
+            jd_signals: JD signals with categorized keywords (optional)
+
         Returns:
             ValidationResult: Validation results with fixes
         """
         flags = []
         fixes = []
         corrected = revised
-        
+
         # Check PII
         pii_issues = self.check_pii(revised)
         flags.extend(pii_issues)
-        
+
         # Check filler
         filler_issues = self.check_filler(revised)
         flags.extend(filler_issues)
-        
+
         # Check passive voice
         passive_issues = self.check_passive_voice(revised)
         flags.extend(passive_issues)
-        
+
+        # NEW: LLM-based factual consistency check with hard tool awareness
+        consistency_flags = self._check_factual_consistency_llm(original, revised, jd_signals)
+        flags.extend(consistency_flags)
+
         # Apply safe fixes
         if apply_fixes and filler_issues:
             corrected = self.remove_filler(corrected)
             fixes.append("Removed filler phrases")
-        
-        # Use LLM for deeper validation
-        user_prompt = USER_PROMPT_TEMPLATE.format(
-            original=original,
-            revised=corrected
-        )
-        
+
+        # Use LLM for deeper validation (grammar/clarity)
+        user_prompt = USER_PROMPT_TEMPLATE.format(original=original, revised=corrected)
+
         try:
             response = self.llm_client.complete_json(
-                system_prompt=SYSTEM_PROMPT,
-                user_prompt=user_prompt,
-                temperature=0.1
+                system_prompt=SYSTEM_PROMPT, user_prompt=user_prompt, temperature=0.1
             )
-            
+
             # Merge LLM flags
             llm_flags = response.get("flags", [])
             flags.extend(llm_flags)
-            
+
             # Apply LLM corrections if provided
             if apply_fixes and response.get("corrected_text"):
                 corrected = response["corrected_text"]
                 if response.get("safe_fixes"):
                     fixes.append("Applied LLM grammar/clarity fixes")
-        
+
         except Exception as e:
             # LLM validation failed, continue with regex checks
             flags.append(f"LLM validation error: {str(e)}")
-        
+
         # Determine overall OK status
         ok = len(flags) == 0
-        
-        return ValidationResult(
-            ok=ok,
-            flags=flags,
-            fixes=fixes
-        ), corrected
 
+        return ValidationResult(ok=ok, flags=flags, fixes=fixes), corrected

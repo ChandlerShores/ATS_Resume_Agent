@@ -16,43 +16,75 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environments
 venv/
-env/
+.venv/
 ENV/
-.venv
+env/
+env.bak/
+venv.bak/
 
-# Environment Variables
-.env
-.env.local
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# Output
-out/
-*.log
+.DS_Store
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Linting
+.ruff_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Environment
+.env
+.env.local
+*.env
+
+# Application Output
+out/
+data/
+
+# Development & Testing
+tests/
+examples/
+scripts/
+_archive/
+test_*.py
+test_*.ps1
+test_*.json
+start_server.py
+TESTING_GUIDE.md
+
+# Logs
+*.log
+logs/
+
+# Temporary Files
+_baseline_inventory.md
+_static_analysis_report.md
+_installed_packages.txt
+_ruff_errors.txt
+_archive/
 
 # OS
-.DS_Store
 Thumbs.db
-
-# Redis
-dump.rdb
-
-# NLP Models
-models/
-

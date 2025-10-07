@@ -1,3 +1,11 @@
+# Core Dependencies for ATS Resume Agent
+# ============================================
+# This file is maintained for backward compatibility.
+# The source of truth is pyproject.toml.
+#
+# To install: pip install -e .
+# For development: pip install -e .[dev]
+
 # LLM Clients
 openai>=1.12.0
 anthropic>=0.18.0
@@ -8,13 +16,6 @@ python-ulid>=2.2.0
 # HTTP Client
 httpx>=0.26.0
 
-# NLP Libraries
-spacy>=3.7.0
-nltk>=3.8.1
-
-# Redis Client
-redis>=5.0.0
-
 # Schema Validation
 pydantic>=2.6.0
 pydantic-settings>=2.1.0
@@ -23,19 +24,16 @@ pydantic-settings>=2.1.0
 python-dotenv>=1.0.0
 tenacity>=8.2.3
 
-# CLI
-click>=8.1.7
-
 # Document Parsing
 python-docx>=1.1.0
 pdfplumber>=0.10.0
 chardet>=5.2.0
+beautifulsoup4>=4.12.0
 
-# Testing
-pytest>=8.0.0
-pytest-asyncio>=0.23.4
+# API Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
 
-# Development
-black>=24.1.1
-ruff>=0.2.0
-
+# Production-only dependencies
+# For development tools, use: pip install -e .[dev]

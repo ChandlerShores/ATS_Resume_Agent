@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+.venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting
+.ruff_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+
+# Environment & Secrets
+.env
+.env.*
+*.env
+
+# Output & Data
+out/
+data/
+
+# Documentation
+*.md
+docs/
+_archive/
+
+# Temporary Files
+_baseline_inventory.md
+_static_analysis_report.md
+_dependency_audit_report.md
+_test_coverage_report.md
+_installed_packages.txt
+_ruff_errors.txt
+
+# Tests (for production image)
+tests/
+
+# Example scripts
+examples/
+

@@ -1,7 +1,0 @@
-api\main.py:13: unused import 'JSONResponse' (90% confidence)
-ops\rate_limiter.py:4: unused import 'math' (90% confidence)
-orchestrator\state_machine.py:18: unused import 'PermanentError' (90% confidence)
-schemas\models.py:31: unused variable 'cls' (100% confidence)
-schemas\models.py:37: unused variable 'cls' (100% confidence)
-tests\test_job_board_scraper.py:4: unused import 'MagicMock' (90% confidence)
-tests\test_job_board_scraper.py:229: unused variable 'mock_scrape' (100% confidence)

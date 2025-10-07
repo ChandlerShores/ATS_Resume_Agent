@@ -1,9 +1,7 @@
 """SCORER agent: Scores bullet variants on relevance, impact, and clarity."""
 
-from typing import List, Dict, Set
 from ops.llm_client import get_llm_client
-from schemas.models import BulletScores, JDSignals, Coverage
-
+from schemas.models import BulletScores, Coverage, JDSignals
 
 SYSTEM_PROMPT = """You are an expert at evaluating resume bullets for ATS compatibility and impact.
 
@@ -47,95 +45,80 @@ Return JSON:
 
 class Scorer:
     """Agent for scoring bullet variants."""
-    
+
     def __init__(self, llm_client=None):
         self.llm_client = llm_client or get_llm_client()
-    
+
     def score_variant(
-        self,
-        original: str,
-        revised: str,
-        role: str,
-        jd_signals: JDSignals
+        self, original: str, revised: str, role: str, jd_signals: JDSignals
     ) -> tuple[BulletScores, str]:
         """
         Score a single variant.
-        
+
         Args:
             original: Original bullet
             revised: Revised bullet
             role: Target role
             jd_signals: JD signals for alignment checking
-            
+
         Returns:
             tuple[BulletScores, str]: Scores and explanation
         """
         jd_terms_str = ", ".join(jd_signals.top_terms[:10])
-        
+
         user_prompt = USER_PROMPT_TEMPLATE.format(
-            original=original,
-            revised=revised,
-            role=role,
-            jd_terms=jd_terms_str
+            original=original, revised=revised, role=role, jd_terms=jd_terms_str
         )
-        
+
         response = self.llm_client.complete_json(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
-            temperature=0.2  # Lower for consistent scoring
+            temperature=0.2,  # Lower for consistent scoring
         )
-        
+
         scores = BulletScores(
             relevance=response.get("relevance", 0),
             impact=response.get("impact", 0),
-            clarity=response.get("clarity", 0)
+            clarity=response.get("clarity", 0),
         )
-        
+
         explanation = response.get("explanation", "")
-        
+
         return scores, explanation
-    
-    def compute_coverage(
-        self,
-        all_revised_bullets: List[str],
-        jd_signals: JDSignals
-    ) -> Coverage:
+
+    def compute_coverage(self, all_revised_bullets: list[str], jd_signals: JDSignals) -> Coverage:
         """
         Compute coverage of JD terms across all bullets.
-        
+
         Args:
             all_revised_bullets: All revised bullets
             jd_signals: JD signals to check against
-            
+
         Returns:
             Coverage: Hit and miss terms
         """
         # Combine all revised text
         combined_text = " ".join(all_revised_bullets).lower()
-        
-        hit_terms: Set[str] = set()
-        miss_terms: Set[str] = set()
-        
+
+        hit_terms: set[str] = set()
+        miss_terms: set[str] = set()
+
         for term in jd_signals.top_terms:
             term_lower = term.lower()
-            
+
             # Check if term or its synonyms appear
             found = term_lower in combined_text
-            
+
             if not found and term in jd_signals.synonyms:
                 # Check synonyms
                 for synonym in jd_signals.synonyms[term]:
                     if synonym.lower() in combined_text:
                         found = True
                         break
-            
+
             if found:
                 hit_terms.add(term)
             else:
                 miss_terms.add(term)
-        
-        return Coverage(
-            hit=sorted(list(hit_terms)),
-            miss=sorted(list(miss_terms))
-        )
 
+        return Coverage(hit=sorted(list(hit_terms)), miss=sorted(list(miss_terms)))
