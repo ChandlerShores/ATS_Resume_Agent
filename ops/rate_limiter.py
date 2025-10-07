@@ -1,7 +1,6 @@
 """Rate limiting using token bucket algorithm with Redis or in-memory fallback."""
 
 import time
-import math
 from typing import Optional
 from dataclasses import dataclass, field
 from threading import Lock
@@ -120,6 +119,8 @@ class RateLimiter:
         """
         Add random jitter to a delay to prevent thundering herd.
         
+        Uses secrets module for cryptographic-grade randomness.
+        
         Args:
             base_delay: Base delay in seconds
             max_jitter: Maximum jitter as fraction of base_delay
@@ -127,7 +128,10 @@ class RateLimiter:
         Returns:
             float: Delay with jitter added
         """
-        import random
-        jitter = random.uniform(0, base_delay * max_jitter)
+        import secrets
+        # Generate cryptographically secure random float
+        random_bytes = secrets.randbits(32)
+        normalized = random_bytes / (2**32)  # Convert to 0-1 range
+        jitter = normalized * base_delay * max_jitter
         return base_delay + jitter
 

@@ -1,0 +1,411 @@
+Run started:2025-10-07 22:09:46.791603
+
+Test results:
+>> Issue: [B104:hardcoded_bind_all_interfaces] Possible binding to all interfaces.
+   Severity: Medium   Confidence: Medium
+   CWE: CWE-605 (https://cwe.mitre.org/data/definitions/605.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b104_hardcoded_bind_all_interfaces.html
+   Location: .\api\main.py:371:26
+370	    import uvicorn
+371	    uvicorn.run(app, host="0.0.0.0", port=8000)
+372	
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: .\ops\rate_limiter.py:131:17
+130	        import random
+131	        jitter = random.uniform(0, base_delay * max_jitter)
+132	        return base_delay + jitter
+
+--------------------------------------------------
+>> Issue: [B311:blacklist] Standard pseudo-random generators are not suitable for security/cryptographic purposes.
+   Severity: Low   Confidence: High
+   CWE: CWE-330 (https://cwe.mitre.org/data/definitions/330.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/blacklists/blacklist_calls.html#b311-random
+   Location: .\ops\retry.py:33:13
+32	    # Add jitter: random value between (1 - jitter_factor) and (1 + jitter_factor)
+33	    jitter = random.uniform(1 - jitter_factor, 1 + jitter_factor)
+34	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:25:8
+24	        
+25	        assert role == 'Marketing Lead'
+26	        assert company == 'Phreesia'
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:26:8
+25	        assert role == 'Marketing Lead'
+26	        assert company == 'Phreesia'
+27	        assert 'We are seeking' in jd_text
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:27:8
+26	        assert company == 'Phreesia'
+27	        assert 'We are seeking' in jd_text
+28	        assert 'Requirements' in jd_text
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:28:8
+27	        assert 'We are seeking' in jd_text
+28	        assert 'Requirements' in jd_text
+29	
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:48:8
+47	        
+48	        assert result['role'] == 'Senior Analyst'
+49	        assert 'Full job description' in result['jd_text']
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:49:8
+48	        assert result['role'] == 'Senior Analyst'
+49	        assert 'Full job description' in result['jd_text']
+50	        assert mock_provider.called
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_interactive_fallback.py:50:8
+49	        assert 'Full job description' in result['jd_text']
+50	        assert mock_provider.called
+51	
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:79:8
+78	        """Should detect 'sign in to continue' paywall."""
+79	        assert _detect_paywall(PAYWALL_HTML) is True
+80	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:84:8
+83	        html = "<html><body>Login to view this job posting</body></html>"
+84	        assert _detect_paywall(html) is True
+85	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:88:8
+87	        """Should not detect paywall on valid job page."""
+88	        assert _detect_paywall(VALID_JOB_HTML) is False
+89	
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:98:8
+97	        cleaned = _clean_html(html)
+98	        assert "<script>" not in cleaned
+99	        assert "Content" in cleaned
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:99:8
+98	        assert "<script>" not in cleaned
+99	        assert "Content" in cleaned
+100	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:105:8
+104	        cleaned = _clean_html(html)
+105	        assert "<style>" not in cleaned
+106	        assert "Content" in cleaned
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:106:8
+105	        assert "<style>" not in cleaned
+106	        assert "Content" in cleaned
+107	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:112:8
+111	        cleaned = _clean_html(html, max_length=1000)
+112	        assert len(cleaned) <= 1100  # Allow some overhead
+113	        assert "content truncated" in cleaned.lower()
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:113:8
+112	        assert len(cleaned) <= 1100  # Allow some overhead
+113	        assert "content truncated" in cleaned.lower()
+114	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:125:8
+124	        cleaned = _clean_html(html)
+125	        assert "Main Content" in cleaned
+126	        # Note: BeautifulSoup might keep nav/footer, but main should be present
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:210:8
+209	        
+210	        assert result["company"] == "Acme Corp"
+211	        assert result["job_title"] == "Senior Financial Analyst"
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:211:8
+210	        assert result["company"] == "Acme Corp"
+211	        assert result["job_title"] == "Senior Financial Analyst"
+212	        assert mock_llm.complete_json.called
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:212:8
+211	        assert result["job_title"] == "Senior Financial Analyst"
+212	        assert mock_llm.complete_json.called
+213	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:258:8
+257	        
+258	        assert result["company"] == "Acme Corp"
+259	        assert result["job_title"] == "Senior Financial Analyst"
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:259:8
+258	        assert result["company"] == "Acme Corp"
+259	        assert result["job_title"] == "Senior Financial Analyst"
+260	        assert result["url"] == url
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:260:8
+259	        assert result["job_title"] == "Senior Financial Analyst"
+260	        assert result["url"] == url
+261	        assert "scraped_at" in result
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:261:8
+260	        assert result["url"] == url
+261	        assert "scraped_at" in result
+262	        assert mock_cache_write.called
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_job_board_scraper.py:262:8
+261	        assert "scraped_at" in result
+262	        assert mock_cache_write.called
+263	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:17:4
+16	    # Should have one metrics dict per bullet
+17	    assert len(metrics) == 3
+18	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:20:4
+19	    # Bullet 0: only has 34%
+20	    assert '34%' in metrics[0]['percentages']
+21	    assert len(metrics[0]['dollar_amounts']) == 0
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:21:4
+20	    assert '34%' in metrics[0]['percentages']
+21	    assert len(metrics[0]['dollar_amounts']) == 0
+22	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:24:4
+23	    # Bullet 1: only has $3M
+24	    assert '$3M' in metrics[1]['dollar_amounts']
+25	    assert len(metrics[1]['percentages']) == 0
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:25:4
+24	    assert '$3M' in metrics[1]['dollar_amounts']
+25	    assert len(metrics[1]['percentages']) == 0
+26	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:28:4
+27	    # Bullet 2: has count but no percentages or dollars
+28	    assert len(metrics[2]['percentages']) == 0
+29	    assert len(metrics[2]['dollar_amounts']) == 0
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:29:4
+28	    assert len(metrics[2]['percentages']) == 0
+29	    assert len(metrics[2]['dollar_amounts']) == 0
+30	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:48:4
+47	    # Bullet 1 should have NO percentages or dollars
+48	    assert len(metrics[1]['percentages']) == 0, "Bullet without metrics got contaminated with percentages!"
+49	    assert len(metrics[1]['dollar_amounts']) == 0, "Bullet without metrics got contaminated with dollar amounts!"
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:49:4
+48	    assert len(metrics[1]['percentages']) == 0, "Bullet without metrics got contaminated with percentages!"
+49	    assert len(metrics[1]['dollar_amounts']) == 0, "Bullet without metrics got contaminated with dollar amounts!"
+50	    
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:52:4
+51	    # Bullet 0 should have both
+52	    assert len(metrics[0]['percentages']) > 0
+53	    assert len(metrics[0]['dollar_amounts']) > 0
+
+--------------------------------------------------
+>> Issue: [B101:assert_used] Use of assert detected. The enclosed code will be removed when compiling to optimised byte code.
+   Severity: Low   Confidence: High
+   CWE: CWE-703 (https://cwe.mitre.org/data/definitions/703.html)
+   More Info: https://bandit.readthedocs.io/en/1.8.6/plugins/b101_assert_used.html
+   Location: .\tests\test_per_bullet_metrics.py:53:4
+52	    assert len(metrics[0]['percentages']) > 0
+53	    assert len(metrics[0]['dollar_amounts']) > 0
+54	    
+
+--------------------------------------------------
+
+Code scanned:
+	Total lines of code: 4209
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 38
+		Medium: 1
+		High: 0
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 0
+		Medium: 1
+		High: 38
+Files skipped (0):

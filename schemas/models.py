@@ -21,20 +21,20 @@ class JobInput(BaseModel):
     jd_text: Optional[str] = Field(None, description="Job description text")
     jd_url: Optional[str] = Field(None, description="URL to fetch JD from")
     bullets: List[str] = Field(..., min_length=1, description="Resume bullets to revise")
-    metrics: Dict[str, Any] = Field(default_factory=dict, description="Quantifiable metrics")
+    metrics: Optional[Dict[str, Any]] = Field(None, description="Quantifiable metrics (optional, per-bullet metrics used instead)")
     extra_context: Optional[str] = Field(None, description="Additional context")
     settings: JobSettings = Field(default_factory=JobSettings)
     job_id: Optional[str] = Field(None, description="ULID job identifier")
     
     @field_validator('bullets')
     @classmethod
-    def bullets_not_empty(cls, v: List[str]) -> List[str]:
+    def bullets_not_empty(_cls, v: List[str]) -> List[str]:
         """Ensure bullets are not empty strings."""
         return [b.strip() for b in v if b.strip()]
     
     @field_validator('jd_text', 'jd_url')
     @classmethod
-    def at_least_one_jd_source(cls, v, info):
+    def at_least_one_jd_source(_cls, v, info):
         """Ensure either jd_text or jd_url is provided."""
         # This will be checked in the state machine
         return v
@@ -111,6 +111,11 @@ class JDSignals(BaseModel):
     weights: Dict[str, float] = Field(default_factory=dict, description="Term importance weights")
     synonyms: Dict[str, List[str]] = Field(default_factory=dict, description="Synonym map")
     themes: Dict[str, List[str]] = Field(default_factory=dict, description="Thematic groupings")
+    
+    # Categorized keywords for intelligent keyword usage
+    soft_skills: List[str] = Field(default_factory=list, description="Transferable skills (analytical thinking, adaptability)")
+    hard_tools: List[str] = Field(default_factory=list, description="Specific tools/platforms (Marketo, Salesforce)")
+    domain_terms: List[str] = Field(default_factory=list, description="Industry/context terms (B2B healthcare, SaaS)")
 
 
 class RewriteVariant(BaseModel):
@@ -138,6 +143,12 @@ class JobState(BaseModel):
     jd_text: str = ""
     jd_hash: str = ""
     normalized_bullets: List[str] = Field(default_factory=list)
+    
+    # Categorized bullets
+    achievement_bullets: List[str] = Field(default_factory=list, description="Bullets to fully rewrite")
+    skill_bullets: List[str] = Field(default_factory=list, description="Bullets to lightly format")
+    metadata_bullets: List[str] = Field(default_factory=list, description="Bullets to preserve")
+    
     jd_signals: Optional[JDSignals] = None
     raw_rewrites: Dict[str, List[RewriteVariant]] = Field(default_factory=dict)
     scored_results: List[BulletResult] = Field(default_factory=list)

@@ -1,7 +1,6 @@
 """Retry logic with exponential backoff and jitter for resilient external calls."""
 
 import time
-import random
 from typing import TypeVar, Callable, Optional, Any
 from functools import wraps
 
@@ -30,7 +29,12 @@ def exponential_backoff_with_jitter(
     delay = min(base_delay * (2 ** attempt), max_delay)
     
     # Add jitter: random value between (1 - jitter_factor) and (1 + jitter_factor)
-    jitter = random.uniform(1 - jitter_factor, 1 + jitter_factor)
+    # Using secrets module for cryptographic-grade randomness
+    import secrets
+    random_bytes = secrets.randbits(32)
+    normalized = random_bytes / (2**32)
+    jitter_range = 2 * jitter_factor
+    jitter = (1 - jitter_factor) + (normalized * jitter_range)
     
     return delay * jitter
 

@@ -6,12 +6,15 @@ import argparse
 from enum import Enum
 from typing import Dict, Any, List
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from ops.logging import logger
 from ops.ulid_gen import generate_job_id
 from ops.hashing import compute_jd_hash
 from ops.dlq import dlq
-from ops.retry import PermanentError
 
 from schemas.models import (
     JobInput,
@@ -161,6 +164,13 @@ class StateMachine:
         if not state.normalized_bullets:
             raise ValueError("No valid bullets provided")
         
+        # Categorize bullets using hybrid approach
+        from ops.bullet_categorizer import categorize_bullets
+        categorized = categorize_bullets(state.normalized_bullets, self.jd_parser.llm_client)
+        state.achievement_bullets = categorized["achievements"]
+        state.skill_bullets = categorized["skills"]
+        state.metadata_bullets = categorized["metadata"]
+        
         # Check idempotency
         idem_key = idempotency_manager.compute_key(
             job_id=state.job_id,
@@ -184,9 +194,12 @@ class StateMachine:
         
         log_entry = logger.info(
             stage="INGEST",
-            msg=f"Ingested {len(state.normalized_bullets)} bullets",
+            msg=f"Ingested {len(state.normalized_bullets)} bullets: {len(state.achievement_bullets)} achievements, {len(state.skill_bullets)} skills, {len(state.metadata_bullets)} metadata",
             job_id=state.job_id,
-            jd_hash=state.jd_hash
+            jd_hash=state.jd_hash,
+            achievements=len(state.achievement_bullets),
+            skills=len(state.skill_bullets),
+            metadata=len(state.metadata_bullets)
         )
         state.add_log(log_entry)
         
@@ -224,7 +237,11 @@ class StateMachine:
     
     def _rewrite(self, state: JobState) -> State:
         """
-        REWRITE state: Generate bullet variants.
+        REWRITE state: Generate bullet variants based on category.
+        
+        - Achievements: Full rewrite with LLM
+        - Skills: Light format (keyword swap only)
+        - Metadata: Preserve as-is
         
         Args:
             state: Current job state
@@ -234,21 +251,48 @@ class StateMachine:
         """
         log_entry = logger.info(
             stage="REWRITE",
-            msg=f"Rewriting {len(state.normalized_bullets)} bullets",
+            msg=f"Rewriting bullets: {len(state.achievement_bullets)} achievements (full), {len(state.skill_bullets)} skills (light), {len(state.metadata_bullets)} metadata (preserve)",
             job_id=state.job_id
         )
         state.add_log(log_entry)
         
-        # Rewrite all bullets
-        state.raw_rewrites = self.rewriter.rewrite_all(
-            bullets=state.normalized_bullets,
-            role=state.input_data.role,
-            jd_signals=state.jd_signals,
-            metrics=state.input_data.metrics,
-            extra_context=state.input_data.extra_context or "",
-            max_words=state.input_data.settings.max_len,
-            num_variants=state.input_data.settings.variants
-        )
+        state.raw_rewrites = {}
+        
+        # 1. Fully rewrite achievement bullets
+        if state.achievement_bullets:
+            from ops.metrics_extractor import extract_metrics_per_bullet
+            bullet_metrics = extract_metrics_per_bullet(state.achievement_bullets)
+            
+            achievement_rewrites = self.rewriter.rewrite_all(
+                bullets=state.achievement_bullets,
+                role=state.input_data.role,
+                jd_signals=state.jd_signals,
+                bullet_metrics=bullet_metrics,
+                extra_context=state.input_data.extra_context or "",
+                max_words=state.input_data.settings.max_len,
+                num_variants=state.input_data.settings.variants
+            )
+            state.raw_rewrites.update(achievement_rewrites)
+        
+        # 2. Light format skill bullets (keyword swap only)
+        if state.skill_bullets:
+            skill_rewrites = self.rewriter.format_skills(
+                skills=state.skill_bullets,
+                jd_signals=state.jd_signals,
+                num_variants=state.input_data.settings.variants
+            )
+            state.raw_rewrites.update(skill_rewrites)
+        
+        # 3. Preserve metadata bullets as-is
+        from schemas.models import RewriteVariant
+        for metadata_bullet in state.metadata_bullets:
+            # Create "variants" that are just the original
+            state.raw_rewrites[metadata_bullet] = [
+                RewriteVariant(
+                    text=metadata_bullet,
+                    rationale="Metadata bullet preserved as-is"
+                )
+            ]
         
         total_variants = sum(len(variants) for variants in state.raw_rewrites.values())
         
@@ -350,7 +394,8 @@ class StateMachine:
                 validation_result, corrected_text = self.validator.validate(
                     original=result.original,
                     revised=revised_text,
-                    apply_fixes=True
+                    apply_fixes=True,
+                    jd_signals=state.jd_signals  # Pass JD signals for hard tool checking
                 )
                 
                 # Update revised text if corrected

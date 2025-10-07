@@ -1,0 +1,17 @@
+# Bandit security scanner configuration
+
+# Skips for test files
+skips: ['B101']  # assert_used (OK in tests)
+
+# Exclude paths
+exclude_dirs:
+  - /tests/
+  - /.venv/
+  - /venv/
+  - /__pycache__/
+
+# Tests to skip globally
+tests:
+  # B104: hardcoded_bind_all_interfaces - handled by env config
+  # B311: random - we've fixed this to use secrets where needed
+
