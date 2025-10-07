@@ -1,0 +1,24 @@
+{
+  "role": "Senior Financial Analyst",
+  "jd_text": "We are seeking a Senior Financial Analyst to join our Finance team. The ideal candidate will have strong expertise in financial modeling, budgeting, forecasting, and variance analysis. \n\nKey Responsibilities:\n- Build and maintain complex financial models for budgeting and forecasting\n- Perform monthly variance analysis and provide insights to management\n- Lead the month-end close process and ensure accuracy of financial reporting\n- Develop Power BI dashboards for financial KPIs and metrics\n- Collaborate with cross-functional teams to support strategic initiatives\n- Automate reporting processes using Excel VBA, Python, or similar tools\n- Support annual budgeting and quarterly forecasting cycles\n\nRequired Skills:\n- 5+ years of experience in financial analysis or FP&A\n- Expert proficiency in Excel (pivot tables, VLOOKUP, macros)\n- Experience with financial systems (D365, SAP, Oracle, or similar ERP)\n- Strong analytical and problem-solving skills\n- Excellent communication and presentation abilities\n- Bachelor's degree in Finance, Accounting, or related field\n\nPreferred Skills:\n- Power BI or Tableau experience\n- SQL or Python for data analysis\n- CFA or CPA certification\n- Experience in manufacturing or multi-entity environments",
+  "bullets": [
+    "Responsible for creating monthly financial reports and presenting them to management",
+    "Worked on various financial analysis projects and helped with budgeting",
+    "Used Excel to analyze data and create spreadsheets for the finance team",
+    "Participated in the month-end close process and reconciled accounts",
+    "Helped implement a new reporting system that improved efficiency"
+  ],
+  "metrics": {
+    "variance_analysis_entities": 12,
+    "cycle_time_reduction": "31%",
+    "reports_automated": 15,
+    "dashboard_users": 45
+  },
+  "extra_context": "Worked primarily with D365 Finance and Power BI. Led a project to standardize financial templates across multiple business units.",
+  "settings": {
+    "tone": "concise",
+    "max_len": 30,
+    "variants": 2
+  }
+}
+

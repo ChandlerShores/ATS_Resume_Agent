@@ -1,0 +1,36 @@
+# LLM Clients
+openai>=1.12.0
+anthropic>=0.18.0
+
+# ID Generation
+python-ulid>=2.2.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# NLP Libraries
+spacy>=3.7.0
+nltk>=3.8.1
+
+# Redis Client
+redis>=5.0.0
+
+# Schema Validation
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+
+# Utilities
+python-dotenv>=1.0.0
+tenacity>=8.2.3
+
+# CLI
+click>=8.1.7
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.4
+
+# Development
+black>=24.1.1
+ruff>=0.2.0
+
