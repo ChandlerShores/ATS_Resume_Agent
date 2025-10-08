@@ -18,22 +18,29 @@ class JobSettings(BaseModel):
 class JobInput(BaseModel):
     """Input schema for a resume bullet revision job."""
 
-    role: str = Field(..., description="Target role/position")
-    jd_text: str | None = Field(None, description="Job description text")
-    jd_url: str | None = Field(None, description="URL to fetch JD from")
-    bullets: list[str] = Field(..., min_length=1, description="Resume bullets to revise")
+    role: str = Field(..., max_length=200, description="Target role/position")  # ✅ SECURITY: Length limit
+    jd_text: str | None = Field(None, max_length=50000, description="Job description text")  # ✅ SECURITY: 50KB limit
+    jd_url: str | None = Field(None, max_length=2000, description="URL to fetch JD from")  # ✅ SECURITY: URL length limit
+    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")  # ✅ SECURITY: Max 20 bullets
     metrics: dict[str, Any] | None = Field(
         None, description="Quantifiable metrics (optional, per-bullet metrics used instead)"
     )
-    extra_context: str | None = Field(None, description="Additional context")
+    extra_context: str | None = Field(None, max_length=5000, description="Additional context")  # ✅ SECURITY: 5KB limit
     settings: JobSettings = Field(default_factory=JobSettings)
     job_id: str | None = Field(None, description="ULID job identifier")
 
     @field_validator("bullets")
     @classmethod
     def bullets_not_empty(cls, v: list[str]) -> list[str]:
-        """Ensure bullets are not empty strings."""
-        return [b.strip() for b in v if b.strip()]
+        """Ensure bullets are not empty strings and limit individual length."""
+        # ✅ SECURITY: Limit individual bullet length to 1KB
+        cleaned_bullets = []
+        for bullet in v:
+            if bullet and bullet.strip():
+                # Limit each bullet to 1000 characters
+                cleaned_bullet = bullet.strip()[:1000]
+                cleaned_bullets.append(cleaned_bullet)
+        return cleaned_bullets
 
     @field_validator("jd_text", "jd_url")
     @classmethod

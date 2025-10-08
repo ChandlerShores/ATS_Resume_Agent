@@ -275,3 +275,4 @@ If you need clarification:
 **Now please help me integrate this API into my Next.js frontend with clean, production-ready code.**
 
 
+

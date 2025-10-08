@@ -11,14 +11,24 @@ Designed for integration with frontend applications (React/Next.js).
 from datetime import datetime
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from ulid import ULID
 
+from ops.cost_controller import cost_controller
+from ops.input_sanitizer import InputSanitizer
 from ops.logging import logger
+from ops.security_monitor import security_monitor
 from orchestrator.state_machine import StateMachine
 from schemas.models import JobInput, JobSettings
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Create FastAPI app
 app = FastAPI(
@@ -27,14 +37,75 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Add rate limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS configuration for frontend integration
+import os
+
+# Environment-based CORS - configure ALLOWED_ORIGINS in production
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")
+if not ALLOWED_ORIGINS or ALLOWED_ORIGINS == [""]:
+    # Development default - change for production
+    ALLOWED_ORIGINS = ["http://localhost:3000", "http://localhost:3001"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this for production
+    allow_origins=ALLOWED_ORIGINS,  # ✅ SECURITY: Specific domains only
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # ✅ SECURITY: Limited methods
+    allow_headers=["Content-Type"],  # ✅ SECURITY: Limited headers
 )
+
+
+# ✅ SECURITY: Request size limiting middleware
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    """Limit request body size to prevent memory exhaustion attacks."""
+    if request.method == "POST":
+        # Read the body to check size
+        body = await request.body()
+        
+        # 10MB limit
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(body) > max_size:
+            logger.warning(
+                stage="api",
+                msg="Request too large",
+                size=len(body),
+                max_size=max_size,
+                client_ip=request.client.host
+            )
+            return JSONResponse(
+                status_code=413,
+                content={"detail": "Request too large. Maximum size is 10MB."}
+            )
+        
+        # Recreate request with body for downstream processing
+        async def receive():
+            return {"type": "http.request", "body": body}
+        request._receive = receive
+    
+    response = await call_next(request)
+    return response
+
+
+# ✅ SECURITY: Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    return response
 
 # In-memory job storage (replace with Redis/DB for production)
 jobs_storage: dict[str, dict[str, Any]] = {}
@@ -141,17 +212,32 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+@limiter.limit("100/minute")  # ✅ SECURITY: Lighter rate limit for health checks
+async def health_check(request: Request):
     """Detailed health check."""
+    # Check if approaching cost limits
+    is_approaching, warnings = cost_controller.is_approaching_limit()
+    
+    # Get security stats
+    security_stats = security_monitor.get_security_stats()
+    
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "active_jobs": len([j for j in jobs_storage.values() if j.get("status") == "processing"]),
+        "cost_warnings": warnings if is_approaching else [],
+        "security": {
+            "suspicious_ips": security_stats["suspicious_ips"],
+            "total_failed_attempts": security_stats["total_failed_attempts"],
+            "total_suspicious_patterns": security_stats["total_suspicious_patterns"]
+        }
     }
 
 
 @app.post("/api/resume/process", response_model=JobStatusResponse)
+@limiter.limit("5/minute")  # ✅ SECURITY: Rate limit expensive operations
 async def process_resume(
+    request: Request,
     background_tasks: BackgroundTasks,
     resume_file: UploadFile | None = File(None),
     resume_text: str | None = Form(None),
@@ -329,32 +415,103 @@ async def delete_job(job_id: str):
 
 
 @app.post("/api/test/process-sync")
-async def process_sync(request: ProcessResumeRequest):
+@limiter.limit("5/minute")  # ✅ SECURITY: Rate limit expensive operations
+async def process_sync(request: Request, data: ProcessResumeRequest):
     """
     Synchronous processing endpoint (for testing only).
 
     WARNING: This will timeout for long-running jobs. Use async endpoints in production.
     """
     try:
+        # ✅ SECURITY: Check cost limits before processing
+        model = os.getenv("LLM_MODEL", "gpt-4o-mini")
+        is_allowed, reason = cost_controller.check_cost_limit(model)
+        if not is_allowed:
+            logger.warning(
+                stage="api",
+                msg="Request blocked by cost controller",
+                reason=reason,
+                client_ip=request.client.host
+            )
+            raise HTTPException(status_code=429, detail=f"Request blocked: {reason}")
+        
+        # ✅ SECURITY: Sanitize all inputs before processing
+        sanitized_role = InputSanitizer.sanitize_role(data.role)
+        sanitized_jd_text = InputSanitizer.sanitize_job_description(data.jd_text) if data.jd_text else None
+        sanitized_bullets = InputSanitizer.sanitize_bullets(data.bullets)
+        sanitized_context = InputSanitizer.sanitize_extra_context(data.extra_context) if data.extra_context else None
+        
+        # Check for suspicious patterns
+        is_safe, warnings = InputSanitizer.is_safe_input(data.jd_text or "")
+        if not is_safe:
+            # ✅ SECURITY: Log suspicious patterns to security monitor
+            for warning in warnings:
+                security_monitor.log_suspicious_pattern(
+                    ip=request.client.host,
+                    pattern=warning,
+                    input_type="jd_text"
+                )
+            
+            logger.warning(
+                stage="api",
+                msg="Suspicious input detected",
+                warnings=warnings,
+                client_ip=request.client.host
+            )
+        
+        if not sanitized_bullets:
+            raise HTTPException(status_code=400, detail="No valid bullets provided after sanitization")
+        
         job_id = str(ULID())
 
         job_input = JobInput(
             job_id=job_id,
-            role=request.role,
-            jd_url=request.jd_url,
-            jd_text=request.jd_text,
-            bullets=request.bullets,
-            extra_context=request.extra_context,
-            settings=JobSettings(**(request.settings or {})),
+            role=sanitized_role,
+            jd_url=data.jd_url,  # URLs are validated separately
+            jd_text=sanitized_jd_text,
+            bullets=sanitized_bullets,
+            extra_context=sanitized_context,
+            settings=JobSettings(**(data.settings or {})),
         )
 
         result = state_machine.run(job_input)
 
+        # ✅ SECURITY: Track successful request for cost monitoring
+        cost_controller.track_request(model)
+        
         return result.model_dump()
 
     except Exception as e:
         logger.error(stage="api", msg=f"Sync processing failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ✅ SECURITY: Global exception handler to sanitize error messages
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler that sanitizes error messages."""
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # ✅ SECURITY: Log failed requests to security monitor
+    security_monitor.log_failed_request(
+        ip=client_ip,
+        reason=str(exc),
+        endpoint=request.url.path
+    )
+    
+    # Log the full error for debugging
+    logger.error(
+        stage="api",
+        msg=f"Unhandled error: {str(exc)}",
+        error_type=type(exc).__name__,
+        client_ip=client_ip
+    )
+    
+    # Return sanitized error message to client
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
 
 
 if __name__ == "__main__":
