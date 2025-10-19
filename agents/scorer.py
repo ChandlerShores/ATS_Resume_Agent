@@ -138,6 +138,11 @@ Return JSON:
         results = []
         for score_data in response.get("scores", []):
             bullet_index = score_data.get("bullet_index", 0)
+            
+            # Safety check: ensure bullet_index is within bounds
+            if bullet_index >= len(bullets_data):
+                continue
+                
             scores = BulletScores(
                 relevance=score_data.get("relevance", 0),
                 impact=score_data.get("impact", 0),
@@ -145,6 +150,17 @@ Return JSON:
             )
             explanation = score_data.get("explanation", "")
             results.append((scores, explanation))
+
+        # Fallback: if batch processing failed, process individually
+        if not results:
+            for original, revised in bullets_data:
+                scores, explanation = self.score_variant(
+                    original=original,
+                    revised=revised,
+                    role=role,
+                    jd_signals=jd_signals,
+                )
+                results.append((scores, explanation))
 
         return results
 

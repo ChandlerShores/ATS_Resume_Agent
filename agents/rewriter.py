@@ -342,6 +342,11 @@ Return JSON:
         results = {}
         for result_data in response.get("results", []):
             bullet_index = result_data.get("bullet_index", 0)
+            
+            # Safety check: ensure bullet_index is within bounds
+            if bullet_index >= len(bullets):
+                continue
+                
             original_bullet = bullets[bullet_index]
             
             variants = []
@@ -354,6 +359,20 @@ Return JSON:
                 )
             
             results[original_bullet] = variants
+
+        # Fallback: if batch processing failed, process individually
+        if not results:
+            for i, bullet in enumerate(bullets):
+                variants = self.rewrite_bullet(
+                    bullet=bullet,
+                    role=role,
+                    jd_signals=jd_signals,
+                    metrics=bullet_metrics[i],
+                    extra_context=extra_context,
+                    max_words=max_words,
+                    num_variants=num_variants,
+                )
+                results[bullet] = variants
 
         return results
 
