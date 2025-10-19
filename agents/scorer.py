@@ -151,8 +151,10 @@ Return JSON:
             explanation = score_data.get("explanation", "")
             results.append((scores, explanation))
 
-        # Fallback: if batch processing failed, process individually
-        if not results:
+        # Ensure we have results for all bullets in correct order
+        if len(results) != len(bullets_data):
+            # Batch processing failed or incomplete - fall back to individual processing
+            results = []
             for original, revised in bullets_data:
                 scores, explanation = self.score_variant(
                     original=original,

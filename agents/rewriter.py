@@ -194,7 +194,7 @@ class Rewriter:
         """
         Rewrite all bullets with per-bullet metrics.
         
-        OPTIMIZATION: Batch process bullets to reduce API calls.
+        Uses reliable individual processing for stability.
 
         Args:
             bullets: List of original bullets
@@ -208,39 +208,23 @@ class Rewriter:
         Returns:
             Dict mapping original bullet to variants
         """
-        # OPTIMIZATION: Batch process up to 5 bullets per API call
-        batch_size = 5
         results = {}
-        
-        for i in range(0, len(bullets), batch_size):
-            batch_bullets = bullets[i:i + batch_size]
-            batch_metrics = bullet_metrics[i:i + batch_size]
-            
-            if len(batch_bullets) == 1:
-                # Single bullet - use original method
-                variants = self.rewrite_bullet(
-                    bullet=batch_bullets[0],
-                    role=role,
-                    jd_signals=jd_signals,
-                    metrics=batch_metrics[0],
-                    extra_context=extra_context,
-                    max_words=max_words,
-                    num_variants=num_variants,
-                )
-                results[batch_bullets[0]] = variants
-            else:
-                # Multiple bullets - batch process
-                batch_results = self._rewrite_batch(
-                    bullets=batch_bullets,
-                    role=role,
-                    jd_signals=jd_signals,
-                    bullet_metrics=batch_metrics,
-                    extra_context=extra_context,
-                    max_words=max_words,
-                    num_variants=num_variants,
-                )
-                results.update(batch_results)
-        
+
+        for i, bullet in enumerate(bullets):
+            # Get metrics for THIS specific bullet only
+            metrics_for_this_bullet = bullet_metrics[i]
+
+            variants = self.rewrite_bullet(
+                bullet=bullet,
+                role=role,
+                jd_signals=jd_signals,
+                metrics=metrics_for_this_bullet,
+                extra_context=extra_context,
+                max_words=max_words,
+                num_variants=num_variants,
+            )
+            results[bullet] = variants
+
         return results
 
     def _rewrite_batch(
