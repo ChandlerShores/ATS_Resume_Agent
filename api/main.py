@@ -14,6 +14,8 @@ from typing import Any
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -24,11 +26,12 @@ from ops.cost_controller import cost_controller
 from ops.input_sanitizer import InputSanitizer
 from ops.logging import logger
 from ops.security_monitor import security_monitor
+from ops.simple_rate_limiter import check_rate_limit
 from orchestrator.state_machine import StateMachine
 from schemas.models import JobInput, JobSettings
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter with explicit memory storage
+limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
 
 # Create FastAPI app
 app = FastAPI(
@@ -36,6 +39,11 @@ app = FastAPI(
     description="AI-powered resume bullet revision service for ATS optimization",
     version="1.0.0",
 )
+
+# Mount static files (HTML frontend)
+static_dir = Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir), html=True), name="static")
 
 # Add rate limiter to app
 app.state.limiter = limiter
@@ -70,7 +78,7 @@ async def limit_request_size(request: Request, call_next):
         # 10MB limit
         max_size = 10 * 1024 * 1024  # 10MB
         if len(body) > max_size:
-            logger.warning(
+            logger.warn(
                 stage="api",
                 msg="Request too large",
                 size=len(body),
@@ -120,11 +128,11 @@ state_machine = StateMachine()
 class ProcessResumeRequest(BaseModel):
     """Request to process a resume."""
 
-    role: str = Field(..., description="Target job role/position")
-    jd_url: str | None = Field(None, description="Job description URL")
-    jd_text: str | None = Field(None, description="Job description text (if URL fails)")
-    bullets: list[str] = Field(..., description="Resume bullets to revise")
-    extra_context: str | None = Field(None, description="Additional context")
+    role: str = Field(..., min_length=1, max_length=200, description="Target job role/position")  # ✅ SECURITY: Non-empty, length limit
+    jd_url: str | None = Field(None, max_length=2000, description="Job description URL")  # ✅ SECURITY: URL length limit
+    jd_text: str | None = Field(None, max_length=50000, description="Job description text (if URL fails)")  # ✅ SECURITY: 50KB limit
+    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")  # ✅ SECURITY: Max 20 bullets
+    extra_context: str | None = Field(None, max_length=5000, description="Additional context")  # ✅ SECURITY: 5KB limit
     settings: dict[str, Any] | None = Field(None, description="Processing settings")
 
 
@@ -191,10 +199,10 @@ def process_resume_job(job_id: str, job_input: JobInput):
         update_job_status(job_id, "processing", 10, "Starting ingestion...")
 
         # Run state machine
-        result = state_machine.run(job_input)
+        result = state_machine.execute(job_input.model_dump())
 
         # Store result
-        jobs_storage[job_id]["result"] = result.model_dump()
+        jobs_storage[job_id]["result"] = result
         update_job_status(job_id, "completed", 100, "Processing complete")
 
     except Exception as e:
@@ -207,13 +215,16 @@ def process_resume_job(job_id: str, job_input: JobInput):
 
 @app.get("/")
 async def root():
-    """Health check endpoint."""
-    return {"service": "ATS Resume Bullet Revisor API", "status": "healthy", "version": "1.0.0"}
+    """Redirect to HTML frontend."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/index.html")
 
 
 @app.get("/health")
-@limiter.limit("100/minute")  # ✅ SECURITY: Lighter rate limit for health checks
 async def health_check(request: Request):
+    """Detailed health check."""
+    # ✅ SECURITY: Custom rate limiting (100 requests per minute)
+    check_rate_limit(request, limit=100)
     """Detailed health check."""
     # Check if approaching cost limits
     is_approaching, warnings = cost_controller.is_approaching_limit()
@@ -415,8 +426,12 @@ async def delete_job(job_id: str):
 
 
 @app.post("/api/test/process-sync")
-@limiter.limit("5/minute")  # ✅ SECURITY: Rate limit expensive operations
 async def process_sync(request: Request, data: ProcessResumeRequest):
+    """Process resume bullets synchronously with security controls."""
+    # ✅ SECURITY: Custom rate limiting (5 requests per minute)
+    print(f"DEBUG: Checking rate limit for IP: {request.client.host if request.client else 'unknown'}")
+    check_rate_limit(request, limit=5)
+    print("DEBUG: Rate limit check passed")
     """
     Synchronous processing endpoint (for testing only).
 
@@ -427,7 +442,7 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
         model = os.getenv("LLM_MODEL", "gpt-4o-mini")
         is_allowed, reason = cost_controller.check_cost_limit(model)
         if not is_allowed:
-            logger.warning(
+            logger.warn(
                 stage="api",
                 msg="Request blocked by cost controller",
                 reason=reason,
@@ -452,7 +467,7 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
                     input_type="jd_text"
                 )
             
-            logger.warning(
+            logger.warn(
                 stage="api",
                 msg="Suspicious input detected",
                 warnings=warnings,
@@ -474,12 +489,12 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
             settings=JobSettings(**(data.settings or {})),
         )
 
-        result = state_machine.run(job_input)
+        result = state_machine.execute(job_input.model_dump())
 
         # ✅ SECURITY: Track successful request for cost monitoring
         cost_controller.track_request(model)
         
-        return result.model_dump()
+        return result
 
     except Exception as e:
         logger.error(stage="api", msg=f"Sync processing failed: {str(e)}")
