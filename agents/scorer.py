@@ -86,6 +86,68 @@ class Scorer:
 
         return scores, explanation
 
+    def score_batch(
+        self, bullets_data: list[tuple[str, str]], role: str, jd_signals: JDSignals
+    ) -> list[tuple[BulletScores, str]]:
+        """
+        Score multiple bullet variants in a single API call.
+        
+        Args:
+            bullets_data: List of (original, revised) tuples
+            role: Target role
+            jd_signals: JD signals for alignment checking
+
+        Returns:
+            List of (scores, explanation) tuples
+        """
+        jd_terms_str = ", ".join(jd_signals.top_terms[:10])
+        
+        bullets_text = "\n\n".join([
+            f"Bullet {i+1}:\nOriginal: {original}\nRevised: {revised}"
+            for i, (original, revised) in enumerate(bullets_data)
+        ])
+
+        batch_prompt = f"""Score these {len(bullets_data)} revised resume bullets.
+
+Target Role: {role}
+Key JD Terms: {jd_terms_str}
+
+BULLETS TO SCORE:
+{bullets_text}
+
+Return JSON:
+{{
+  "scores": [
+    {{
+      "bullet_index": 0,
+      "relevance": <0-100>,
+      "impact": <0-100>,
+      "clarity": <0-100>,
+      "explanation": "1-2 sentences explaining the scores"
+    }},
+    ...
+  ]
+}}"""
+
+        response = self.llm_client.complete_json(
+            system_prompt=SYSTEM_PROMPT,
+            user_prompt=batch_prompt,
+            temperature=0.2,
+        )
+
+        results = []
+        for score_data in response.get("scores", []):
+            bullet_index = score_data.get("bullet_index", 0)
+            scores = BulletScores(
+                relevance=score_data.get("relevance", 0),
+                impact=score_data.get("impact", 0),
+                clarity=score_data.get("clarity", 0),
+            )
+            explanation = score_data.get("explanation", "")
+            results.append((scores, explanation))
+
+        return results
+
     def compute_coverage(self, all_revised_bullets: list[str], jd_signals: JDSignals) -> Coverage:
         """
         Compute coverage of JD terms across all bullets.

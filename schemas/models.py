@@ -12,7 +12,7 @@ class JobSettings(BaseModel):
 
     tone: str = Field(default="concise", description="Writing tone")
     max_len: int = Field(default=30, ge=1, le=100, description="Max words per bullet")
-    variants: int = Field(default=2, ge=1, le=5, description="Number of variants to generate")
+    variants: int = Field(default=1, ge=1, le=3, description="Number of variants to generate")  # REDUCED: Default 1, max 3
 
 
 class JobInput(BaseModel):

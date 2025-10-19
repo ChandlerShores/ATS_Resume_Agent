@@ -269,21 +269,29 @@ class StateMachine:
         log_entry = logger.info(stage="SCORE_SELECT", msg="Scoring variants", job_id=state.job_id)
         state.add_log(log_entry)
 
-        # Score each bullet's variants
+        # OPTIMIZATION: Batch score all variants
+        bullets_to_score = []
+        bullet_mapping = {}
+        
         for original_bullet, variants in state.raw_rewrites.items():
-            revised_texts = [v.text for v in variants]
-
-            # Score the first variant (or could score all and pick best)
-            # For now, return both variants with same scoring approach
             if variants:
-                scores, explanation = self.scorer.score_variant(
-                    original=original_bullet,
-                    revised=variants[0].text,
-                    role=state.input_data.role,
-                    jd_signals=state.jd_signals,
-                )
+                bullets_to_score.append((original_bullet, variants[0].text))
+                bullet_mapping[original_bullet] = variants
 
-                # Create bullet result
+        if bullets_to_score:
+            # Batch score all bullets
+            batch_scores = self.scorer.score_batch(
+                bullets_data=bullets_to_score,
+                role=state.input_data.role,
+                jd_signals=state.jd_signals,
+            )
+
+            # Create bullet results
+            for i, (original_bullet, _) in enumerate(bullets_to_score):
+                scores, explanation = batch_scores[i]
+                variants = bullet_mapping[original_bullet]
+                revised_texts = [v.text for v in variants]
+
                 bullet_result = BulletResult(
                     original=original_bullet,
                     revised=revised_texts,

@@ -34,12 +34,13 @@ venv.bak/
 # IDEs
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
 .DS_Store
 
-# Testing
+# Testing Artifacts
 .pytest_cache/
 .coverage
 htmlcov/
@@ -48,6 +49,8 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+tests/fixtures/security_results.json
+tests/fixtures/sample_output.json
 
 # Linting
 .ruff_cache/
@@ -55,29 +58,18 @@ coverage.xml
 .dmypy.json
 dmypy.json
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
-*.env
+.env.production
+.env.development
+!.env.example
 
 # Application Output
 out/
 data/
-
-# Development & Testing
-tests/
-examples/
-scripts/
-_archive/
-test_*.py
-test_*.ps1
-test_*.json
-start_server.py
-TESTING_GUIDE.md
-
-# Logs
-*.log
 logs/
+*.log
 
 # Temporary Files
 _baseline_inventory.md
@@ -85,6 +77,16 @@ _static_analysis_report.md
 _installed_packages.txt
 _ruff_errors.txt
 _archive/
+*.tmp
+*.bak
 
 # OS
 Thumbs.db
+.DS_Store
+
+# Documentation (temporary/generated)
+docs/_build/
+docs/.doctrees/
+
+# File Organization Plan
+FILE_ORGANIZATION_PLAN.md

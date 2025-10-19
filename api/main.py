@@ -131,7 +131,7 @@ class ProcessResumeRequest(BaseModel):
     role: str = Field(..., min_length=1, max_length=200, description="Target job role/position")  # ✅ SECURITY: Non-empty, length limit
     jd_url: str | None = Field(None, max_length=2000, description="Job description URL")  # ✅ SECURITY: URL length limit
     jd_text: str | None = Field(None, max_length=50000, description="Job description text (if URL fails)")  # ✅ SECURITY: 50KB limit
-    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")  # ✅ SECURITY: Max 20 bullets
+    bullets: list[str] = Field(..., min_length=1, max_length=10, description="Resume bullets to revise")  # ✅ COST: Reduced max to 10 bullets
     extra_context: str | None = Field(None, max_length=5000, description="Additional context")  # ✅ SECURITY: 5KB limit
     settings: dict[str, Any] | None = Field(None, description="Processing settings")
 

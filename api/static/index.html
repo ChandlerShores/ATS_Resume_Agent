@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Resume Optimizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+        
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .bullet-result {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+        
+        .original {
+            color: #666;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+        
+        .revised {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .revised:hover {
+            border-color: #667eea;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+        
+        .scores {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .score {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            background: white;
+        }
+        
+        .score-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .score-value {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        
+        .score-value.high { color: #10b981; }
+        .score-value.medium { color: #f59e0b; }
+        .score-value.low { color: #ef4444; }
+        
+        .error {
+            background: #fee;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            border-radius: 4px;
+            color: #c00;
+            margin-top: 20px;
+        }
+        
+        .notes {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fffbeb;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 ATS Resume Optimizer</h1>
+            <p>AI-powered resume bullet optimization for better ATS compatibility</p>
+        </div>
+        
+        <div class="content">
+            <form id="resumeForm">
+                <div class="form-group">
+                    <label for="role">Target Job Role *</label>
+                    <input type="text" id="role" name="role" placeholder="e.g., Senior Software Engineer" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jd_text">Job Description *</label>
+                    <textarea id="jd_text" name="jd_text" placeholder="Paste the job description here..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="resume_text">Resume Bullets * (one per line)</label>
+                    <textarea id="resume_text" name="resume_text" placeholder="Built REST APIs using Python&#10;Deployed applications to cloud&#10;Created automated testing pipelines" required></textarea>
+                    <div style="font-size: 0.9em; color: #666; margin-top: 5px;">Tip: Paste 2-5 bullets from your resume</div>
+                </div>
+                
+                <button type="submit" class="btn" id="submitBtn">Optimize Resume</button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your resume... This may take 30-60 seconds</p>
+                <p style="color: #666; font-size: 0.9em; margin-top: 10px;">LLM is analyzing and rewriting your bullets</p>
+            </div>
+            
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('resumeForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get form values
+            const role = document.getElementById('role').value;
+            const jd_text = document.getElementById('jd_text').value;
+            const resume_text = document.getElementById('resume_text').value;
+            
+            // Parse bullets from text
+            const bullets = resume_text.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => line.replace(/^[•\-\*]\s*/, '')); // Remove bullet markers
+            
+            if (bullets.length === 0) {
+                alert('Please enter at least one resume bullet');
+                return;
+            }
+            
+            // Show loading
+            loading.classList.add('active');
+            results.classList.remove('active');
+            results.innerHTML = '';
+            submitBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/test/process-sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        role: role,
+                        jd_text: jd_text,
+                        bullets: bullets,
+                        settings: {
+                            max_len: 30,
+                            variants: 1
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`API error: ${response.status} - ${errorData.detail || response.statusText}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                        <br><br>
+                        Make sure the API server is running and try again.
+                    </div>
+                `;
+                results.classList.add('active');
+            } finally {
+                loading.classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function displayResults(data) {
+            let html = '<h2>✨ Optimized Resume Bullets</h2>';
+            
+            if (data.summary) {
+                html += `
+                    <div style="background: #f0f9ff; padding: 20px; border-radius: 6px; margin: 20px 0;">
+                        <h3>📊 Coverage Analysis</h3>
+                        <p><strong>Top JD Terms:</strong> ${data.summary.top_terms.slice(0, 5).join(', ')}</p>
+                        <p><strong>Coverage:</strong> ${data.summary.coverage.hit.length} terms hit, ${data.summary.coverage.miss.length} terms missed</p>
+                    </div>
+                `;
+            }
+            
+            data.results.forEach((result, index) => {
+                html += `
+                    <div class="bullet-result">
+                        <h3>Bullet ${index + 1}</h3>
+                        <div class="original">
+                            <strong>Original:</strong><br>
+                            ${result.original}
+                        </div>
+                        
+                        ${result.revised.map((rev, i) => `
+                            <div class="revised">
+                                <button class="copy-btn" onclick="copyText('${escapeHtml(rev)}')">Copy</button>
+                                <strong>Variant ${i + 1}:</strong><br>
+                                ${rev}
+                            </div>
+                        `).join('')}
+                        
+                        <div class="scores">
+                            <div class="score">
+                                <div class="score-label">Relevance</div>
+                                <div class="score-value ${getScoreClass(result.scores.relevance)}">${result.scores.relevance}</div>
+                            </div>
+                            <div class="score">
+                                <div class="score-label">Impact</div>
+                                <div class="score-value ${getScoreClass(result.scores.impact)}">${result.scores.impact}</div>
+                            </div>
+                            <div class="score">
+                                <div class="score-label">Clarity</div>
+                                <div class="score-value ${getScoreClass(result.scores.clarity)}">${result.scores.clarity}</div>
+                            </div>
+                        </div>
+                        
+                        ${result.notes ? `<div class="notes">💡 ${result.notes}</div>` : ''}
+                    </div>
+                `;
+            });
+            
+            if (data.red_flags && data.red_flags.length > 0) {
+                html += `
+                    <div class="error">
+                        <strong>⚠️ Red Flags:</strong><br>
+                        ${data.red_flags.map(flag => `• ${flag}`).join('<br>')}
+                    </div>
+                `;
+            }
+            
+            results.innerHTML = html;
+            results.classList.add('active');
+        }
+        
+        function getScoreClass(score) {
+            if (score >= 80) return 'high';
+            if (score >= 60) return 'medium';
+            return 'low';
+        }
+        
+        function escapeHtml(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+        
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
+

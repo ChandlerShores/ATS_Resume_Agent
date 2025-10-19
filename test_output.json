@@ -1,0 +1,184 @@
+{
+  "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD",
+  "summary": {
+    "role": "Senior Software Engineer",
+    "top_terms": [
+      "Senior Software Engineer",
+      "Python",
+      "FastAPI",
+      "RESTful APIs",
+      "Flask",
+      "Cloud platform",
+      "AWS",
+      "GCP",
+      "Azure",
+      "microservices architecture",
+      "CI/CD pipelines",
+      "Docker",
+      "communication skills",
+      "mentoring skills",
+      "5+ years experience"
+    ],
+    "coverage": {
+      "hit": [
+        "FastAPI",
+        "Python",
+        "RESTful APIs"
+      ],
+      "miss": [
+        "5+ years experience",
+        "AWS",
+        "Azure",
+        "CI/CD pipelines",
+        "Cloud platform",
+        "Docker",
+        "Flask",
+        "GCP",
+        "Senior Software Engineer",
+        "communication skills",
+        "mentoring skills",
+        "microservices architecture"
+      ]
+    }
+  },
+  "results": [
+    {
+      "original": "Built REST APIs using Python and FastAPI framework",
+      "revised": [
+        "Developed REST APIs using Python and FastAPI framework.",
+        "Created REST APIs."
+      ],
+      "scores": {
+        "relevance": 80,
+        "impact": 70,
+        "clarity": 85
+      },
+      "notes": "Preserved the original activity of building REST APIs while adapting the language to emphasize software engineering and microservices, aligning with the target role.",
+      "diff": {
+        "removed": [],
+        "added_terms": []
+      }
+    },
+    {
+      "original": "Deployed applications to cloud infrastructure",
+      "revised": [
+        "Deployed applications to cloud infrastructure.",
+        "Deployed applications on cloud infrastructure."
+      ],
+      "scores": {
+        "relevance": 70,
+        "impact": 70,
+        "clarity": 90
+      },
+      "notes": "Preserved the original activity of deploying applications while adapting the phrasing to highlight impact on performance and reliability, aligning with software engineering terminology.",
+      "diff": {
+        "removed": [],
+        "added_terms": []
+      }
+    },
+    {
+      "original": "Created automated testing pipelines",
+      "revised": [
+        "Developed automated testing pipelines.",
+        "Implemented automated testing pipelines."
+      ],
+      "scores": {
+        "relevance": 70,
+        "impact": 70,
+        "clarity": 90
+      },
+      "notes": "Preserved the core activity of creating automated testing pipelines while adapting the phrasing to emphasize software quality and engineering processes, aligning with the target role.",
+      "diff": {
+        "removed": [],
+        "added_terms": []
+      }
+    }
+  ],
+  "red_flags": [
+    "unsupported claims",
+    "activity_mismatch: Changed 'Built' to 'Created', implying a different focus on collaboration rather than technical implementation.",
+    "vague outcomes",
+    "hard_tool_fabrication: Added 'microservices architecture' which wasn't in original",
+    "filler phrases",
+    "hard_tool_fabrication: Added 'improving deployment efficiency' which wasn't in original"
+  ],
+  "logs": [
+    {
+      "ts": "2025-10-12T00:43:54.611384Z",
+      "level": "info",
+      "stage": "INGEST",
+      "msg": "Starting ingestion",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:43:54.611976Z",
+      "level": "info",
+      "stage": "INGEST",
+      "msg": "Ingested 3 bullets",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:43:54.612167Z",
+      "level": "info",
+      "stage": "EXTRACT_SIGNALS",
+      "msg": "Extracting JD signals",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:05.808656Z",
+      "level": "info",
+      "stage": "EXTRACT_SIGNALS",
+      "msg": "Extracted 15 key terms",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:05.809080Z",
+      "level": "info",
+      "stage": "REWRITE",
+      "msg": "Rewriting bullets: 3 achievements (full), 0 skills (light), 0 metadata (preserve)",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:16.461401Z",
+      "level": "info",
+      "stage": "REWRITE",
+      "msg": "Generated 6 variants",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:16.461636Z",
+      "level": "info",
+      "stage": "SCORE_SELECT",
+      "msg": "Scoring variants",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:23.337928Z",
+      "level": "info",
+      "stage": "SCORE_SELECT",
+      "msg": "Scored 3 bullets",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:23.338562Z",
+      "level": "info",
+      "stage": "VALIDATE",
+      "msg": "Validating bullets",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:47.091800Z",
+      "level": "info",
+      "stage": "VALIDATE",
+      "msg": "Validation complete, 6 flags raised",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    },
+    {
+      "ts": "2025-10-12T00:44:47.092713Z",
+      "level": "info",
+      "stage": "OUTPUT",
+      "msg": "Assembling output",
+      "job_id": "01K7AXZFVKSW91Y07G6QBV9PVD"
+    }
+  ]
+}
