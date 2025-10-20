@@ -72,6 +72,22 @@ class Validator:
 
     def __init__(self, llm_client=None):
         self.llm_client = llm_client or get_llm_client()
+        self._language_tool = None
+
+    def _get_language_tool(self):
+        """Get LanguageTool instance with lazy loading."""
+        if self._language_tool is None:
+            try:
+                import language_tool_python
+                self._language_tool = language_tool_python.LanguageTool('en-US')
+            except Exception as e:
+                from ops.logging import logger
+                logger.warn(
+                    stage="validator",
+                    msg=f"LanguageTool initialization failed: {e}"
+                )
+                self._language_tool = False  # Mark as failed to avoid retries
+        return self._language_tool if self._language_tool is not False else None
 
     def check_pii(self, text: str) -> list[str]:
         """
@@ -240,7 +256,7 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
         self, original: str, revised: str, apply_fixes: bool = True, jd_signals=None
     ) -> ValidationResult:
         """
-        Validate a revised bullet with LLM-based factual consistency check.
+        Validate a revised bullet using local processing (LanguageTool + rule-based checks).
 
         Args:
             original: Original bullet
@@ -251,54 +267,68 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
         Returns:
             ValidationResult: Validation results with fixes
         """
+        from ops.logging import logger
+        
         flags = []
         fixes = []
         corrected = revised
 
-        # Check PII
+        # 1. Check PII
         pii_issues = self.check_pii(revised)
         flags.extend(pii_issues)
 
-        # Check filler
+        # 2. Check filler phrases
         filler_issues = self.check_filler(revised)
         flags.extend(filler_issues)
 
-        # Check passive voice
+        # 3. Check passive voice
         passive_issues = self.check_passive_voice(revised)
         flags.extend(passive_issues)
 
-        # NEW: LLM-based factual consistency check with hard tool awareness
-        consistency_flags = self._check_factual_consistency_llm(original, revised, jd_signals)
-        flags.extend(consistency_flags)
+        # 4. Grammar check using LanguageTool
+        language_tool = self._get_language_tool()
+        if language_tool:
+            try:
+                matches = language_tool.check(revised)
+                if matches:
+                    # Only show top 3 grammar issues to avoid overwhelming
+                    grammar_flags = [f"Grammar: {m.message[:50]}..." for m in matches[:3]]
+                    flags.extend(grammar_flags)
+                    
+                    if apply_fixes:
+                        corrected = language_tool.correct(revised)
+                        fixes.append("Applied LanguageTool grammar corrections")
+            except Exception as e:
+                logger.warn(
+                    stage="validator",
+                    msg=f"LanguageTool grammar check failed: {e}"
+                )
+
+        # 5. Active voice enforcement
+        words = corrected.split()
+        if words:
+            first_word = words[0]
+            if not first_word[0].isupper() or first_word.endswith('ed'):
+                flags.append("Weak action verb - consider stronger active voice")
+
+        # 6. LLM-based factual consistency check (keep this for hard tool validation)
+        if jd_signals:
+            consistency_flags = self._check_factual_consistency_llm(original, revised, jd_signals)
+            flags.extend(consistency_flags)
 
         # Apply safe fixes
         if apply_fixes and filler_issues:
             corrected = self.remove_filler(corrected)
             fixes.append("Removed filler phrases")
 
-        # Use LLM for deeper validation (grammar/clarity)
-        user_prompt = USER_PROMPT_TEMPLATE.format(original=original, revised=corrected)
-
-        try:
-            response = self.llm_client.complete_json(
-                system_prompt=SYSTEM_PROMPT, user_prompt=user_prompt, temperature=0.1
-            )
-
-            # Merge LLM flags
-            llm_flags = response.get("flags", [])
-            flags.extend(llm_flags)
-
-            # Apply LLM corrections if provided
-            if apply_fixes and response.get("corrected_text"):
-                corrected = response["corrected_text"]
-                if response.get("safe_fixes"):
-                    fixes.append("Applied LLM grammar/clarity fixes")
-
-        except Exception as e:
-            # LLM validation failed, continue with regex checks
-            flags.append(f"LLM validation error: {str(e)}")
-
         # Determine overall OK status
         ok = len(flags) == 0
+
+        logger.info(
+            stage="validator",
+            msg=f"Validation completed with {len(flags)} flags",
+            flags_count=len(flags),
+            fixes_applied=len(fixes)
+        )
 
         return ValidationResult(ok=ok, flags=flags, fixes=fixes), corrected

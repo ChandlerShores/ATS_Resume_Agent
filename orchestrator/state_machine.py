@@ -16,9 +16,11 @@ from agents.jd_parser import JDParser
 from agents.rewriter import Rewriter
 from agents.scorer import Scorer
 from agents.validator import Validator
+from agents.fused_processor import FusedProcessor
 from ops.hashing import compute_jd_hash
 from ops.logging import logger
 from ops.ulid_gen import generate_job_id
+from ops.redis_cache import get_jd_cache
 from schemas.models import (
     BulletDiff,
     BulletResult,
@@ -35,8 +37,7 @@ class State(str, Enum):
 
     INGEST = "INGEST"
     EXTRACT_SIGNALS = "EXTRACT_SIGNALS"
-    REWRITE = "REWRITE"
-    SCORE_SELECT = "SCORE_SELECT"
+    PROCESS = "PROCESS"
     VALIDATE = "VALIDATE"
     OUTPUT = "OUTPUT"
     FAILED = "FAILED"
@@ -55,6 +56,8 @@ class StateMachine:
         self.rewriter = Rewriter()
         self.scorer = Scorer()
         self.validator = Validator()
+        self.fused_processor = FusedProcessor()
+        self.redis_cache = get_jd_cache()
 
     def execute(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
@@ -85,10 +88,8 @@ class StateMachine:
                     current_state = self._ingest(state)
                 elif current_state == State.EXTRACT_SIGNALS:
                     current_state = self._extract_signals(state)
-                elif current_state == State.REWRITE:
-                    current_state = self._rewrite(state)
-                elif current_state == State.SCORE_SELECT:
-                    current_state = self._score_select(state)
+                elif current_state == State.PROCESS:
+                    current_state = self._process(state)
                 elif current_state == State.VALIDATE:
                     current_state = self._validate(state)
                 elif current_state == State.OUTPUT:
@@ -161,7 +162,7 @@ class StateMachine:
 
     def _extract_signals(self, state: JobState) -> State:
         """
-        EXTRACT_SIGNALS state: Parse JD and extract key terms.
+        EXTRACT_SIGNALS state: Parse JD and extract key terms with Redis caching.
 
         Args:
             state: Current job state
@@ -174,26 +175,38 @@ class StateMachine:
         )
         state.add_log(log_entry)
 
-        # Parse JD
-        state.jd_signals = self.jd_parser.parse(jd_text=state.jd_text)
+        # Check cache first
+        cached_signals = self.redis_cache.get(state.jd_hash)
+        if cached_signals:
+            state.jd_signals = cached_signals
+            log_entry = logger.info(
+                stage="EXTRACT_SIGNALS",
+                msg=f"Retrieved cached JD signals with {len(state.jd_signals.top_terms)} terms",
+                job_id=state.job_id,
+                cache_hit=True
+            )
+            state.add_log(log_entry)
+        else:
+            # Parse JD using hybrid approach (local + LLM fallback)
+            state.jd_signals = self.jd_parser.parse(jd_text=state.jd_text)
+            
+            # Cache result
+            self.redis_cache.set(state.jd_hash, state.jd_signals)
+            
+            log_entry = logger.info(
+                stage="EXTRACT_SIGNALS",
+                msg=f"Extracted {len(state.jd_signals.top_terms)} key terms and cached result",
+                job_id=state.job_id,
+                top_terms=state.jd_signals.top_terms[:5],
+                cache_hit=False
+            )
+            state.add_log(log_entry)
 
-        log_entry = logger.info(
-            stage="EXTRACT_SIGNALS",
-            msg=f"Extracted {len(state.jd_signals.top_terms)} key terms",
-            job_id=state.job_id,
-            top_terms=state.jd_signals.top_terms[:5],
-        )
-        state.add_log(log_entry)
+        return State.PROCESS
 
-        return State.REWRITE
-
-    def _rewrite(self, state: JobState) -> State:
+    def _process(self, state: JobState) -> State:
         """
-        REWRITE state: Generate bullet variants based on category.
-
-        - Achievements: Full rewrite with LLM
-        - Skills: Light format (keyword swap only)
-        - Metadata: Preserve as-is
+        PROCESS state: Combined rewrite + score stage using fused processor.
 
         Args:
             state: Current job state
@@ -202,112 +215,52 @@ class StateMachine:
             State: Next state
         """
         log_entry = logger.info(
-            stage="REWRITE",
-            msg=f"Rewriting bullets: {len(state.achievement_bullets)} achievements (full), {len(state.skill_bullets)} skills (light), {len(state.metadata_bullets)} metadata (preserve)",
+            stage="PROCESS",
+            msg=f"Processing {len(state.achievement_bullets)} bullets with fused processor",
             job_id=state.job_id,
         )
         state.add_log(log_entry)
 
-        state.raw_rewrites = {}
+        # Use fused processor for batch rewrite + score
+        state.scored_results = self.fused_processor.process_batch(
+            bullets=state.achievement_bullets,
+            role=state.input_data.role,
+            jd_signals=state.jd_signals,
+            settings=state.input_data.settings
+        )
 
-        # Rewrite all bullets (simplified - no metrics extraction)
-        if state.achievement_bullets:
-            # Create empty metrics for each bullet
-            bullet_metrics = [{} for _ in state.achievement_bullets]
-
-            achievement_rewrites = self.rewriter.rewrite_all(
-                bullets=state.achievement_bullets,
-                role=state.input_data.role,
-                jd_signals=state.jd_signals,
-                bullet_metrics=bullet_metrics,
-                extra_context=state.input_data.extra_context or "",
-                max_words=state.input_data.settings.max_len,
-                num_variants=state.input_data.settings.variants,
+        # Add skill bullets and metadata bullets as-is
+        from schemas.models import BulletResult, BulletScores, BulletDiff
+        
+        # Add skill bullets (preserve as-is with basic scores)
+        for skill_bullet in state.skill_bullets:
+            bullet_result = BulletResult(
+                original=skill_bullet,
+                revised=[skill_bullet],
+                scores=BulletScores(relevance=50, impact=50, clarity=50),
+                notes="Skill bullet preserved as-is",
+                diff=BulletDiff(removed=[], added_terms=[])
             )
-            state.raw_rewrites.update(achievement_rewrites)
+            state.scored_results.append(bullet_result)
 
-        # 2. Light format skill bullets (keyword swap only)
-        if state.skill_bullets:
-            skill_rewrites = self.rewriter.format_skills(
-                skills=state.skill_bullets,
-                jd_signals=state.jd_signals,
-                num_variants=state.input_data.settings.variants,
-            )
-            state.raw_rewrites.update(skill_rewrites)
-
-        # 3. Preserve metadata bullets as-is
-        from schemas.models import RewriteVariant
-
+        # Add metadata bullets (preserve as-is)
         for metadata_bullet in state.metadata_bullets:
-            # Create "variants" that are just the original
-            state.raw_rewrites[metadata_bullet] = [
-                RewriteVariant(text=metadata_bullet, rationale="Metadata bullet preserved as-is")
-            ]
-
-        total_variants = sum(len(variants) for variants in state.raw_rewrites.values())
-
-        log_entry = logger.info(
-            stage="REWRITE",
-            msg=f"Generated {total_variants} variants",
-            job_id=state.job_id,
-            count=total_variants,
-        )
-        state.add_log(log_entry)
-
-        return State.SCORE_SELECT
-
-    def _score_select(self, state: JobState) -> State:
-        """
-        SCORE_SELECT state: Score variants and compute coverage.
-
-        Args:
-            state: Current job state
-
-        Returns:
-            State: Next state
-        """
-        log_entry = logger.info(stage="SCORE_SELECT", msg="Scoring variants", job_id=state.job_id)
-        state.add_log(log_entry)
-
-        # Score each bullet's variants (reliable individual processing)
-        for original_bullet, variants in state.raw_rewrites.items():
-            revised_texts = [v.text for v in variants]
-
-            # Score the first variant (or could score all and pick best)
-            if variants:
-                scores, explanation = self.scorer.score_variant(
-                    original=original_bullet,
-                    revised=variants[0].text,
-                    role=state.input_data.role,
-                    jd_signals=state.jd_signals,
-                )
-
-                # Create bullet result
-                bullet_result = BulletResult(
-                    original=original_bullet,
-                    revised=revised_texts,
-                    scores=scores,
-                    notes=variants[0].rationale,
-                    diff=BulletDiff(removed=[], added_terms=[]),  # Will be computed in validation
-                )
-
-                state.scored_results.append(bullet_result)
-
-        # Compute coverage
-        all_revised = []
-        for result in state.scored_results:
-            all_revised.extend(result.revised)
-
-        coverage = self.scorer.compute_coverage(
-            all_revised_bullets=all_revised, jd_signals=state.jd_signals
-        )
+            bullet_result = BulletResult(
+                original=metadata_bullet,
+                revised=[metadata_bullet],
+                scores=BulletScores(relevance=50, impact=50, clarity=50),
+                notes="Metadata bullet preserved as-is",
+                diff=BulletDiff(removed=[], added_terms=[])
+            )
+            state.scored_results.append(bullet_result)
 
         log_entry = logger.info(
-            stage="SCORE_SELECT",
-            msg=f"Scored {len(state.scored_results)} bullets",
+            stage="PROCESS",
+            msg=f"Processed {len(state.scored_results)} bullets total",
             job_id=state.job_id,
-            coverage_hit=len(coverage.hit),
-            coverage_miss=len(coverage.miss),
+            achievement_bullets=len(state.achievement_bullets),
+            skill_bullets=len(state.skill_bullets),
+            metadata_bullets=len(state.metadata_bullets),
         )
         state.add_log(log_entry)
 
