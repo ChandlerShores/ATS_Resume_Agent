@@ -5,7 +5,7 @@ Tests the complete pipeline with real LLM calls.
 
 import json
 import os
-from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -64,7 +64,7 @@ test_input = {
     }
 }
 
-print(f"✅ Test input created:")
+print("✅ Test input created:")
 print(f"   Role: {test_input['role']}")
 print(f"   Bullets: {len(test_input['bullets'])}")
 print(f"   JD Length: {len(test_input['jd_text'])} characters")
@@ -107,7 +107,7 @@ print(f"\nTop JD Terms ({len(result['summary']['top_terms'])}):")
 for term in result['summary']['top_terms'][:10]:
     print(f"  • {term}")
 
-print(f"\nCoverage:")
+print("\nCoverage:")
 print(f"  Hit: {len(result['summary']['coverage']['hit'])} terms")
 print(f"  Miss: {len(result['summary']['coverage']['miss'])} terms")
 
@@ -118,12 +118,12 @@ for i, bullet_result in enumerate(result['results'], 1):
     print(f"\n[{i}] ORIGINAL:")
     print(f"    {bullet_result['original']}")
     
-    print(f"\n    REVISED VARIANTS:")
+    print("\n    REVISED VARIANTS:")
     for j, revised in enumerate(bullet_result['revised'], 1):
         print(f"    {j}. {revised}")
     
     scores = bullet_result['scores']
-    print(f"\n    SCORES:")
+    print("\n    SCORES:")
     print(f"    • Relevance: {scores['relevance']}/100")
     print(f"    • Impact:    {scores['impact']}/100")
     print(f"    • Clarity:   {scores['clarity']}/100")
@@ -136,7 +136,7 @@ if result.get('red_flags'):
     for flag in result['red_flags']:
         print(f"  • {flag}")
 else:
-    print(f"\n✅ No red flags detected")
+    print("\n✅ No red flags detected")
 
 # Save results
 output_file = "test_output.json"

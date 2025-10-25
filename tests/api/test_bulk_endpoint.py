@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Test bulk processing endpoint functionality."""
 
-import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 
 from api.main import app
-from schemas.models import BulkProcessRequest, CandidateInput, JobSettings
+from schemas.models import BulkProcessRequest, CandidateInput
 
 # Set up test client
 client = TestClient(app)

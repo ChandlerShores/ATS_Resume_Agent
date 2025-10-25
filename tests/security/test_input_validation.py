@@ -5,8 +5,9 @@ Windows-compatible version without Unicode characters
 """
 
 import json
-import requests
 import time
+
+import requests
 
 
 def test_api_health():

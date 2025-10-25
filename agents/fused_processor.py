@@ -1,10 +1,8 @@
 """Fused processor for batch rewrite + score operations in a single LLM call."""
 
-from typing import List
 
 from ops.llm_client import get_llm_client
-from schemas.models import BulletResult, BulletScores, BulletDiff, JDSignals, JobSettings
-
+from schemas.models import BulletDiff, BulletResult, BulletScores, JDSignals, JobSettings
 
 SYSTEM_PROMPT = """You are an expert resume editor. Rewrite bullets and score them in one pass.
 
@@ -71,11 +69,11 @@ class FusedProcessor:
     
     def process_batch(
         self, 
-        bullets: List[str], 
+        bullets: list[str], 
         role: str, 
         jd_signals: JDSignals, 
         settings: JobSettings
-    ) -> List[BulletResult]:
+    ) -> list[BulletResult]:
         """
         Process multiple bullets in a single batch LLM call.
         

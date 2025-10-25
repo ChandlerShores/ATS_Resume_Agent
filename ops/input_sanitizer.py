@@ -2,7 +2,6 @@
 
 import html
 import re
-from typing import Any
 
 
 class InputSanitizer:

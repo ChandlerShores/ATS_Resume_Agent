@@ -2,7 +2,6 @@
 
 import os
 from datetime import datetime, timedelta
-from typing import Dict, Optional
 
 from ops.logging import logger
 
@@ -16,8 +15,8 @@ class CostController:
         self.request_limit = int(os.getenv("MAX_REQUESTS_PER_DAY", "1000"))  # 1000 requests/day default
         
         # In-memory tracking (replace with Redis/DB in production)
-        self.daily_costs: Dict[str, float] = {}  # date -> cost
-        self.daily_requests: Dict[str, int] = {}  # date -> count
+        self.daily_costs: dict[str, float] = {}  # date -> cost
+        self.daily_requests: dict[str, int] = {}  # date -> count
         
         # Rough cost estimates per request (varies by model and input size)
         self.cost_per_request = {
@@ -86,7 +85,7 @@ class CostController:
         
         return True, "Request allowed"
     
-    def track_request(self, model: str = "default", actual_cost: Optional[float] = None):
+    def track_request(self, model: str = "default", actual_cost: float | None = None):
         """Track a request for cost monitoring.
         
         Args:
@@ -113,7 +112,7 @@ class CostController:
             daily_requests=self.daily_requests[today]
         )
     
-    def get_daily_stats(self) -> Dict[str, any]:
+    def get_daily_stats(self) -> dict[str, any]:
         """Get daily usage statistics.
         
         Returns:

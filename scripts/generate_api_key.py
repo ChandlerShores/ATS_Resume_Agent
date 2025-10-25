@@ -44,9 +44,9 @@ def main():
     print(f"{'='*60}")
     print(f"\nCustomer ID: {customer_id}")
     print(f"API Key:     {api_key}")
-    print(f"\nEnvironment Variable Format:")
+    print("\nEnvironment Variable Format:")
     print(f"CUSTOMER_API_KEYS={customer_id}:{api_key}")
-    print(f"\nFor multiple customers:")
+    print("\nFor multiple customers:")
     print(f"CUSTOMER_API_KEYS={customer_id}:{api_key},customer_002:sk_live_OTHER_KEY")
     print(f"\n{'='*60}\n")
 

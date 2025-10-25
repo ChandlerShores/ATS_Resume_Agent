@@ -2,7 +2,6 @@
 
 import time
 from collections import defaultdict
-from typing import Dict, List
 
 from ops.logging import logger
 
@@ -12,13 +11,13 @@ class SecurityMonitor:
     
     def __init__(self):
         # Track failed requests per IP
-        self.failed_attempts: Dict[str, List[Dict]] = defaultdict(list)
+        self.failed_attempts: dict[str, list[dict]] = defaultdict(list)
         
         # Track request patterns per IP
-        self.request_timestamps: Dict[str, List[float]] = defaultdict(list)
+        self.request_timestamps: dict[str, list[float]] = defaultdict(list)
         
         # Track suspicious patterns detected
-        self.suspicious_patterns: Dict[str, List[str]] = defaultdict(list)
+        self.suspicious_patterns: dict[str, list[str]] = defaultdict(list)
         
         # Configuration
         self.max_failures_per_hour = 10
@@ -149,7 +148,7 @@ class SecurityMonitor:
                 endpoint=endpoint
             )
     
-    def is_ip_suspicious(self, ip: str) -> tuple[bool, List[str]]:
+    def is_ip_suspicious(self, ip: str) -> tuple[bool, list[str]]:
         """Check if an IP address is exhibiting suspicious behavior.
         
         Args:
@@ -179,7 +178,7 @@ class SecurityMonitor:
         
         return len(reasons) > 0, reasons
     
-    def get_security_stats(self) -> Dict[str, any]:
+    def get_security_stats(self) -> dict[str, any]:
         """Get security monitoring statistics.
         
         Returns:

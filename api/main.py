@@ -14,7 +14,6 @@ from typing import Any
 from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pathlib import Path
 from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -28,7 +27,13 @@ from ops.logging import logger
 from ops.security_monitor import security_monitor
 from ops.simple_rate_limiter import check_rate_limit
 from orchestrator.state_machine import StateMachine
-from schemas.models import JobInput, JobSettings, BulkProcessRequest, BulkProcessResponse, CandidateResult
+from schemas.models import (
+    BulkProcessRequest,
+    BulkProcessResponse,
+    CandidateResult,
+    JobInput,
+    JobSettings,
+)
 
 # Initialize rate limiter with explicit memory storage
 limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
@@ -362,10 +367,10 @@ async def bulk_process_resumes(
     
     This is the primary B2B endpoint for bulk resume processing.
     """
-    from ops.logging import logger
-    from ops.input_sanitizer import InputSanitizer
-    from ops.security_monitor import security_monitor
     from ops.cost_controller import cost_controller
+    from ops.input_sanitizer import InputSanitizer
+    from ops.logging import logger
+    from ops.security_monitor import security_monitor
     
     # Security checks
     sanitizer = InputSanitizer()

@@ -12,13 +12,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from agents.jd_parser import JDParser
-from agents.rewriter import Rewriter
-from agents.scorer import Scorer
-from agents.validator import Validator
 from agents.fused_processor import FusedProcessor
+from agents.jd_parser import JDParser
+from agents.validator import Validator
 from ops.logging import logger
-from ops.ulid_gen import generate_job_id
 from ops.redis_cache import get_jd_cache
 from schemas.models import (
     BulletDiff,
@@ -52,11 +49,24 @@ class StateMachine:
 
     def __init__(self):
         self.jd_parser = JDParser()
-        self.rewriter = Rewriter()
-        self.scorer = Scorer()
         self.validator = Validator()
         self.fused_processor = FusedProcessor()
         self.redis_cache = get_jd_cache()
+        self.scorer = self._create_scorer()
+    
+    def _create_scorer(self):
+        """Create a simple scorer for coverage computation."""
+        class SimpleScorer:
+            def compute_coverage(self, all_revised_bullets, jd_signals):
+                """Compute basic coverage analysis."""
+                from schemas.models import Coverage
+                # Combine all revised bullet text
+                all_text = " ".join(all_revised_bullets).lower()
+                # Find hit/miss terms
+                hit = [term for term in jd_signals.top_terms if term.lower() in all_text]
+                miss = [term for term in jd_signals.top_terms if term.lower() not in all_text]
+                return Coverage(hit=hit, miss=miss)
+        return SimpleScorer()
 
     def execute(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
@@ -73,7 +83,8 @@ class StateMachine:
 
         # Generate job_id if missing
         if not job_input.job_id:
-            job_input.job_id = generate_job_id()
+            from ulid import ULID
+            job_input.job_id = str(ULID())
 
         # Initialize state
         state = JobState(job_id=job_input.job_id, input_data=job_input)
@@ -227,7 +238,7 @@ class StateMachine:
         )
 
         # Add skill bullets and metadata bullets as-is
-        from schemas.models import BulletResult, BulletScores, BulletDiff
+        from schemas.models import BulletScores
         
         # Add skill bullets (preserve as-is with basic scores)
         for skill_bullet in state.skill_bullets:

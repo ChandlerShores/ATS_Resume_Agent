@@ -6,15 +6,15 @@ Fallback implementation when slowapi doesn't work
 
 import time
 from collections import defaultdict
-from typing import Dict, Tuple
-from fastapi import Request, HTTPException
+
+from fastapi import HTTPException, Request
 
 
 class SimpleRateLimiter:
     """Simple in-memory rate limiter."""
     
     def __init__(self):
-        self.requests: Dict[str, list] = defaultdict(list)
+        self.requests: dict[str, list] = defaultdict(list)
         self.cleanup_interval = 60  # Clean up every minute
         self.last_cleanup = time.time()
     
@@ -31,7 +31,7 @@ class SimpleRateLimiter:
                     del self.requests[ip]
             self.last_cleanup = now
     
-    def is_allowed(self, ip: str, limit: int = 5) -> Tuple[bool, str]:
+    def is_allowed(self, ip: str, limit: int = 5) -> tuple[bool, str]:
         """Check if request is allowed based on rate limit."""
         self._cleanup_old_requests()
         
@@ -47,7 +47,7 @@ class SimpleRateLimiter:
         self.requests[ip].append(now)
         return True, "Allowed"
     
-    def get_status(self, ip: str) -> Dict[str, int]:
+    def get_status(self, ip: str) -> dict[str, int]:
         """Get current rate limit status for an IP."""
         self._cleanup_old_requests()
         now = time.time()
@@ -82,7 +82,7 @@ def check_rate_limit(request: Request, limit: int = 5) -> None:
         )
 
 
-def get_rate_limit_status(request: Request) -> Dict[str, int]:
+def get_rate_limit_status(request: Request) -> dict[str, int]:
     """Get rate limit status for an IP."""
     client_ip = request.client.host if request.client else "unknown"
     return rate_limiter.get_status(client_ip)

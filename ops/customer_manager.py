@@ -2,8 +2,7 @@
 
 import os
 from collections import defaultdict
-from datetime import datetime, date
-from typing import Dict, Optional
+from datetime import date, datetime
 
 from ops.logging import logger
 from schemas.models import Customer, UsageRecord
@@ -13,8 +12,8 @@ class CustomerManager:
     """Manages customer API keys and usage tracking."""
     
     def __init__(self):
-        self.customers: Dict[str, Customer] = {}
-        self.usage: Dict[str, Dict[str, UsageRecord]] = defaultdict(dict)  # customer_id -> date -> usage
+        self.customers: dict[str, Customer] = {}
+        self.usage: dict[str, dict[str, UsageRecord]] = defaultdict(dict)  # customer_id -> date -> usage
         self._load_customers_from_env()
     
     def _load_customers_from_env(self):
@@ -136,7 +135,7 @@ class CustomerManager:
             daily_bullets=usage_record.total_bullets
         )
     
-    def get_usage_stats(self, customer_id: str) -> Dict[str, any]:
+    def get_usage_stats(self, customer_id: str) -> dict[str, any]:
         """
         Get usage statistics for a customer.
         
@@ -174,7 +173,7 @@ class CustomerManager:
             "total_days_active": len(self.usage[customer_id])
         }
     
-    def get_all_customers_stats(self) -> Dict[str, any]:
+    def get_all_customers_stats(self) -> dict[str, any]:
         """
         Get statistics for all customers.
         

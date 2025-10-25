@@ -2,7 +2,6 @@
 
 import json
 import os
-from typing import Optional
 
 from schemas.models import JDSignals
 
@@ -10,7 +9,7 @@ from schemas.models import JDSignals
 class JDSignalCache:
     """Redis cache for JD parsing results to avoid redundant LLM calls."""
     
-    def __init__(self, redis_url: Optional[str] = None, ttl: int = 3600):
+    def __init__(self, redis_url: str | None = None, ttl: int = 3600):
         """
         Initialize Redis cache.
         
@@ -40,7 +39,7 @@ class JDSignalCache:
                 self._client = None
         return self._client
     
-    def get(self, jd_hash: str) -> Optional[JDSignals]:
+    def get(self, jd_hash: str) -> JDSignals | None:
         """
         Get cached JD signals by hash.
         
@@ -68,7 +67,7 @@ class JDSignalCache:
             )
         return None
     
-    def set(self, jd_hash: str, signals: JDSignals, ttl: Optional[int] = None) -> bool:
+    def set(self, jd_hash: str, signals: JDSignals, ttl: int | None = None) -> bool:
         """
         Cache JD signals by hash.
         
@@ -129,7 +128,7 @@ class JDSignalCache:
 
 
 # Global cache instance
-_global_cache: Optional[JDSignalCache] = None
+_global_cache: JDSignalCache | None = None
 
 
 def get_jd_cache() -> JDSignalCache:

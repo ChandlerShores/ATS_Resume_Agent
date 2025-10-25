@@ -2,10 +2,8 @@
 
 import os
 import re
-from typing import Tuple
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 from ops.llm_client import get_llm_client
 from schemas.models import JDSignals
@@ -110,7 +108,7 @@ class JDParser:
                 self._spacy_model = False  # Mark as failed to avoid retries
         return self._spacy_model if self._spacy_model is not False else None
 
-    def extract_signals_local(self, jd_text: str) -> Tuple[JDSignals, float]:
+    def extract_signals_local(self, jd_text: str) -> tuple[JDSignals, float]:
         """
         Extract JD signals using local NLP processing (spaCy + TF-IDF).
         
@@ -188,7 +186,7 @@ class JDParser:
                     tfidf_scores = tfidf_matrix.toarray()[0]
                     
                     # Get top terms by TF-IDF score
-                    term_scores = list(zip(feature_names, tfidf_scores))
+                    term_scores = list(zip(feature_names, tfidf_scores, strict=False))
                     term_scores.sort(key=lambda x: x[1], reverse=True)
                     
                     top_terms = [term for term, score in term_scores[:25] if score > 0.1]
