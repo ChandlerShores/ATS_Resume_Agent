@@ -32,7 +32,6 @@ print(f"✅ Provider: {provider}")
 print("\n2. Loading modules...")
 try:
     from orchestrator.state_machine import StateMachine
-    from schemas.models import JobInput
     print("✅ Modules loaded successfully")
 except ImportError as e:
     print(f"❌ Failed to load modules: {e}")

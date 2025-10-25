@@ -36,12 +36,12 @@ class CostController:
         cutoff_key = cutoff_date.strftime("%Y-%m-%d")
         
         # Clean up old cost data
-        old_dates = [date for date in self.daily_costs.keys() if date < cutoff_key]
+        old_dates = [date for date in self.daily_costs if date < cutoff_key]
         for date in old_dates:
             del self.daily_costs[date]
         
         # Clean up old request data
-        old_dates = [date for date in self.daily_requests.keys() if date < cutoff_key]
+        old_dates = [date for date in self.daily_requests if date < cutoff_key]
         for date in old_dates:
             del self.daily_requests[date]
     

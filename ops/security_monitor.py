@@ -188,11 +188,11 @@ class SecurityMonitor:
         
         # Count active IPs
         active_ips = set()
-        for ip in self.failed_attempts.keys():
+        for ip in self.failed_attempts:
             if any(now - attempt["timestamp"] < 3600 for attempt in self.failed_attempts[ip]):
                 active_ips.add(ip)
         
-        for ip in self.request_timestamps.keys():
+        for ip in self.request_timestamps:
             if any(now - ts < 60 for ts in self.request_timestamps[ip]):
                 active_ips.add(ip)
         
