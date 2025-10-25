@@ -68,7 +68,6 @@ class Validator:
 
         return issues
 
-
     def _check_factual_consistency_llm(
         self, original: str, revised: str, jd_signals=None
     ) -> list[str]:
@@ -161,7 +160,7 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
             ValidationResult: Validation results with flags
         """
         from ops.logging import logger
-        
+
         flags = []
         fixes = []
         corrected = revised
@@ -182,7 +181,7 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
             stage="validator",
             msg=f"Validation completed with {len(flags)} flags",
             flags_count=len(flags),
-            fixes_applied=len(fixes)
+            fixes_applied=len(fixes),
         )
 
         return ValidationResult(ok=ok, flags=flags, fixes=fixes), corrected

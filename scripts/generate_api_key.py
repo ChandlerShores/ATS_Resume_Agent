@@ -9,18 +9,18 @@ import sys
 def generate_api_key(prefix: str = "sk_live_", length: int = 32) -> str:
     """
     Generate a cryptographically secure API key.
-    
+
     Args:
         prefix: Key prefix (default: "sk_live_")
         length: Length of random part (default: 32)
-    
+
     Returns:
         API key string
     """
     # Generate random alphanumeric string
     alphabet = string.ascii_letters + string.digits
-    random_part = ''.join(secrets.choice(alphabet) for _ in range(length))
-    
+    random_part = "".join(secrets.choice(alphabet) for _ in range(length))
+
     return f"{prefix}{random_part}"
 
 
@@ -32,13 +32,13 @@ def main():
         print("  python generate_api_key.py customer_001")
         print("  python generate_api_key.py customer_002 sk_live_ 32")
         sys.exit(1)
-    
+
     customer_id = sys.argv[1]
     prefix = sys.argv[2] if len(sys.argv) > 2 else "sk_live_"
     length = int(sys.argv[3]) if len(sys.argv) > 3 else 32
-    
+
     api_key = generate_api_key(prefix, length)
-    
+
     print(f"\n{'='*60}")
     print(f"Generated API Key for: {customer_id}")
     print(f"{'='*60}")

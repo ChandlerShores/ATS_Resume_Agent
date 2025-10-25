@@ -75,7 +75,7 @@ async def limit_request_size(request: Request, call_next):
     if request.method == "POST":
         # Read the body to check size
         body = await request.body()
-        
+
         # 10MB limit
         max_size = 10 * 1024 * 1024  # 10MB
         if len(body) > max_size:
@@ -84,18 +84,18 @@ async def limit_request_size(request: Request, call_next):
                 msg="Request too large",
                 size=len(body),
                 max_size=max_size,
-                client_ip=request.client.host
+                client_ip=request.client.host,
             )
             return JSONResponse(
-                status_code=413,
-                content={"detail": "Request too large. Maximum size is 10MB."}
+                status_code=413, content={"detail": "Request too large. Maximum size is 10MB."}
             )
-        
+
         # Recreate request with body for downstream processing
         async def receive():
             return {"type": "http.request", "body": body}
+
         request._receive = receive
-    
+
     response = await call_next(request)
     return response
 
@@ -105,7 +105,7 @@ async def limit_request_size(request: Request, call_next):
 async def add_security_headers(request: Request, call_next):
     """Add security headers to all responses."""
     response = await call_next(request)
-    
+
     # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -113,7 +113,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    
+
     return response
 
 
@@ -124,7 +124,7 @@ async def api_key_middleware(request: Request, call_next):
     # Skip API key validation for health check
     if request.url.path == "/health":
         return await call_next(request)
-    
+
     # Extract API key from header
     api_key = request.headers.get("X-API-Key")
     if not api_key:
@@ -132,38 +132,31 @@ async def api_key_middleware(request: Request, call_next):
             stage="api",
             msg="Request without API key",
             path=request.url.path,
-            client_ip=request.client.host if request.client else "unknown"
+            client_ip=request.client.host if request.client else "unknown",
         )
         return JSONResponse(
-            status_code=401,
-            content={"detail": "API key required. Include X-API-Key header."}
+            status_code=401, content={"detail": "API key required. Include X-API-Key header."}
         )
-    
+
     try:
         # Validate API key and get customer ID
         customer_id = customer_manager.validate_api_key(api_key)
         request.state.customer_id = customer_id
-        
+
         logger.info(
-            stage="api",
-            msg="API key validated",
-            customer_id=customer_id,
-            path=request.url.path
+            stage="api", msg="API key validated", customer_id=customer_id, path=request.url.path
         )
-        
+
     except ValueError as e:
         logger.warn(
             stage="api",
             msg="Invalid API key",
             error=str(e),
             path=request.url.path,
-            client_ip=request.client.host if request.client else "unknown"
+            client_ip=request.client.host if request.client else "unknown",
         )
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Invalid API key"}
-        )
-    
+        return JSONResponse(status_code=401, content={"detail": "Invalid API key"})
+
     response = await call_next(request)
     return response
 
@@ -181,13 +174,19 @@ state_machine = StateMachine()
 class ProcessResumeRequest(BaseModel):
     """Request to process a resume (testing/dev endpoint)."""
 
-    role: str = Field(..., min_length=1, max_length=200, description="Target job role/position")  # ✅ SECURITY: Non-empty, length limit
-    jd_text: str = Field(..., max_length=50000, description="Job description text")  # ✅ SECURITY: 50KB limit
-    bullets: list[str] = Field(..., min_length=1, max_length=10, description="Resume bullets to revise")  # ✅ COST: Reduced max to 10 bullets
-    extra_context: str | None = Field(None, max_length=5000, description="Additional context")  # ✅ SECURITY: 5KB limit
+    role: str = Field(
+        ..., min_length=1, max_length=200, description="Target job role/position"
+    )  # ✅ SECURITY: Non-empty, length limit
+    jd_text: str = Field(
+        ..., max_length=50000, description="Job description text"
+    )  # ✅ SECURITY: 50KB limit
+    bullets: list[str] = Field(
+        ..., min_length=1, max_length=10, description="Resume bullets to revise"
+    )  # ✅ COST: Reduced max to 10 bullets
+    extra_context: str | None = Field(
+        None, max_length=5000, description="Additional context"
+    )  # ✅ SECURITY: 5KB limit
     settings: dict[str, Any] | None = Field(None, description="Processing settings")
-
-
 
 
 class JobStatusResponse(BaseModel):
@@ -250,23 +249,21 @@ def process_resume_job(job_id: str, job_input: JobInput):
 # === API Endpoints ===
 
 
-
-
 @app.get("/health")
 async def health_check(request: Request):
     """Detailed health check."""
     # ✅ SECURITY: Custom rate limiting (100 requests per minute)
     check_rate_limit(request, limit=100)
-    
+
     # Check if approaching cost limits
     is_approaching, warnings = cost_controller.is_approaching_limit()
-    
+
     # Get security stats
     security_stats = security_monitor.get_security_stats()
-    
+
     # Get customer stats
     customer_stats = customer_manager.get_all_customers_stats()
-    
+
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -276,8 +273,8 @@ async def health_check(request: Request):
         "security": {
             "suspicious_ips": security_stats["suspicious_ips"],
             "total_failed_attempts": security_stats["total_failed_attempts"],
-            "total_suspicious_patterns": security_stats["total_suspicious_patterns"]
-        }
+            "total_suspicious_patterns": security_stats["total_suspicious_patterns"],
+        },
     }
 
 
@@ -293,13 +290,17 @@ async def process_resume(
 ):
     """
     Process a single resume with a job description (Testing/Dev endpoint).
-    
+
     NOTE: For production use, please use /api/bulk/process endpoint.
     This endpoint accepts manual text input only - no file uploads or URL scraping.
     """
     try:
         # Parse bullets from resume text (simple newline split)
-        bullets = [line.strip() for line in resume_text.strip().split("\n") if line.strip() and len(line.strip()) > 10]
+        bullets = [
+            line.strip()
+            for line in resume_text.strip().split("\n")
+            if line.strip() and len(line.strip()) > 10
+        ]
 
         if not bullets:
             raise HTTPException(status_code=400, detail="No bullets found in resume text")
@@ -330,18 +331,18 @@ async def process_resume(
 
         # Queue background task
         background_tasks.add_task(process_resume_job, job_id, job_input)
-        
+
         # Track usage
         customer_id = request.state.customer_id
         bullets_count = len(bullets)
         customer_manager.track_usage(customer_id, bullets_count)
-        
+
         logger.info(
             stage="api",
             msg="Resume processing started",
             job_id=job_id,
             customer_id=customer_id,
-            bullets_count=bullets_count
+            bullets_count=bullets_count,
         )
 
         return JobStatusResponse(
@@ -364,27 +365,27 @@ async def bulk_process_resumes(
 ):
     """
     Process multiple candidates' resumes against a single job description.
-    
+
     This is the primary B2B endpoint for bulk resume processing.
     """
     from ops.cost_controller import cost_controller
     from ops.input_sanitizer import InputSanitizer
     from ops.logging import logger
     from ops.security_monitor import security_monitor
-    
+
     # Security checks
     sanitizer = InputSanitizer()
     if not sanitizer.is_safe_input(data.job_description):
         security_monitor.log_suspicious_activity(request.client.host, "suspicious_jd")
         raise HTTPException(status_code=400, detail="Suspicious input detected")
-    
+
     # Cost check
     if not cost_controller.can_make_request():
         raise HTTPException(status_code=429, detail="Daily cost limit exceeded")
-    
+
     # Generate job ID
     job_id = str(ULID())
-    
+
     # Initialize bulk job storage
     jobs_storage[job_id] = {
         "job_id": job_id,
@@ -396,15 +397,15 @@ async def bulk_process_resumes(
         "job_description": data.job_description,
         "settings": data.settings.dict(),
     }
-    
+
     # Track usage
     customer_id = request.state.customer_id
     total_bullets = sum(len(candidate.bullets) for candidate in data.candidates)
     customer_manager.track_usage(customer_id, total_bullets)
-    
+
     # Start background processing
     background_tasks.add_task(process_bulk_job, job_id, data)
-    
+
     logger.info(
         stage="api",
         msg="Bulk processing started",
@@ -412,26 +413,26 @@ async def bulk_process_resumes(
         customer_id=customer_id,
         total_candidates=len(data.candidates),
         total_bullets=total_bullets,
-        jd_length=len(data.job_description)
+        jd_length=len(data.job_description),
     )
-    
+
     return BulkProcessResponse(
         job_id=job_id,
         status="processing",
         total_candidates=len(data.candidates),
         processed_candidates=0,
-        candidates=[]
+        candidates=[],
     )
 
 
 async def process_bulk_job(job_id: str, data: BulkProcessRequest):
     """Process bulk job in background."""
     from ops.logging import logger
-    
+
     try:
         state_machine = StateMachine()
         candidates = {}
-        
+
         # Process each candidate
         for candidate in data.candidates:
             try:
@@ -443,10 +444,10 @@ async def process_bulk_job(job_id: str, data: BulkProcessRequest):
                     bullets=candidate.bullets,
                     settings=data.settings,
                 )
-                
+
                 # Execute state machine for this candidate
                 result = state_machine.execute(job_input)
-                
+
                 # Store candidate result
                 candidates[candidate.candidate_id] = {
                     "candidate_id": candidate.candidate_id,
@@ -455,19 +456,19 @@ async def process_bulk_job(job_id: str, data: BulkProcessRequest):
                     "coverage": result.coverage,
                     "error_message": None,
                 }
-                
+
                 # Update progress
                 jobs_storage[job_id]["processed_candidates"] += 1
                 jobs_storage[job_id]["candidates"] = candidates
-                
+
                 logger.info(
                     stage="api",
                     msg="Candidate processed",
                     job_id=job_id,
                     candidate_id=candidate.candidate_id,
-                    bullets_count=len(candidate.bullets)
+                    bullets_count=len(candidate.bullets),
                 )
-                
+
             except Exception as e:
                 # Handle individual candidate failure
                 candidates[candidate.candidate_id] = {
@@ -477,40 +478,36 @@ async def process_bulk_job(job_id: str, data: BulkProcessRequest):
                     "coverage": None,
                     "error_message": str(e),
                 }
-                
+
                 jobs_storage[job_id]["processed_candidates"] += 1
                 jobs_storage[job_id]["candidates"] = candidates
-                
+
                 logger.error(
                     stage="api",
                     msg=f"Candidate processing failed: {str(e)}",
                     job_id=job_id,
-                    candidate_id=candidate.candidate_id
+                    candidate_id=candidate.candidate_id,
                 )
-        
+
         # Mark job as completed
         jobs_storage[job_id]["status"] = "completed"
         jobs_storage[job_id]["completed_at"] = datetime.utcnow()
-        
+
         logger.info(
             stage="api",
             msg="Bulk processing completed",
             job_id=job_id,
             total_candidates=len(data.candidates),
-            processed_candidates=jobs_storage[job_id]["processed_candidates"]
+            processed_candidates=jobs_storage[job_id]["processed_candidates"],
         )
-        
+
     except Exception as e:
         # Handle overall job failure
         jobs_storage[job_id]["status"] = "failed"
         jobs_storage[job_id]["error"] = str(e)
         jobs_storage[job_id]["failed_at"] = datetime.utcnow()
-        
-        logger.error(
-            stage="api",
-            msg=f"Bulk processing failed: {str(e)}",
-            job_id=job_id
-        )
+
+        logger.error(stage="api", msg=f"Bulk processing failed: {str(e)}", job_id=job_id)
 
 
 @app.get("/api/bulk/status/{job_id}", response_model=BulkProcessResponse)
@@ -518,21 +515,21 @@ async def get_bulk_job_status(job_id: str):
     """Get bulk job processing status."""
     if job_id not in jobs_storage:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     job = jobs_storage[job_id]
-    
+
     # Convert candidates dict to list
     candidates = []
     for candidate_data in job.get("candidates", {}).values():
         candidates.append(CandidateResult(**candidate_data))
-    
+
     return BulkProcessResponse(
         job_id=job_id,
         status=job.get("status", "unknown"),
         total_candidates=job.get("total_candidates", 0),
         processed_candidates=job.get("processed_candidates", 0),
         candidates=candidates,
-        error_message=job.get("error")
+        error_message=job.get("error"),
     )
 
 
@@ -541,25 +538,25 @@ async def get_bulk_job_results(job_id: str):
     """Get bulk job results when processing is complete."""
     if job_id not in jobs_storage:
         raise HTTPException(status_code=404, detail="Job not found")
-    
+
     job = jobs_storage[job_id]
     status = job.get("status")
-    
+
     if status == "processing":
         raise HTTPException(status_code=202, detail="Job still processing")
-    
+
     # Convert candidates dict to list
     candidates = []
     for candidate_data in job.get("candidates", {}).values():
         candidates.append(CandidateResult(**candidate_data))
-    
+
     return BulkProcessResponse(
         job_id=job_id,
         status=status,
         total_candidates=job.get("total_candidates", 0),
         processed_candidates=job.get("processed_candidates", 0),
         candidates=candidates,
-        error_message=job.get("error")
+        error_message=job.get("error"),
     )
 
 
@@ -621,7 +618,9 @@ async def delete_job(job_id: str):
 async def process_sync(request: Request, data: ProcessResumeRequest):
     """Process resume bullets synchronously with security controls."""
     # ✅ SECURITY: Custom rate limiting (5 requests per minute)
-    print(f"DEBUG: Checking rate limit for IP: {request.client.host if request.client else 'unknown'}")
+    print(
+        f"DEBUG: Checking rate limit for IP: {request.client.host if request.client else 'unknown'}"
+    )
     check_rate_limit(request, limit=5)
     print("DEBUG: Rate limit check passed")
     """
@@ -638,37 +637,43 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
                 stage="api",
                 msg="Request blocked by cost controller",
                 reason=reason,
-                client_ip=request.client.host
+                client_ip=request.client.host,
             )
             raise HTTPException(status_code=429, detail=f"Request blocked: {reason}")
-        
+
         # ✅ SECURITY: Sanitize all inputs before processing
         sanitized_role = InputSanitizer.sanitize_role(data.role)
-        sanitized_jd_text = InputSanitizer.sanitize_job_description(data.jd_text) if data.jd_text else None
+        sanitized_jd_text = (
+            InputSanitizer.sanitize_job_description(data.jd_text) if data.jd_text else None
+        )
         sanitized_bullets = InputSanitizer.sanitize_bullets(data.bullets)
-        sanitized_context = InputSanitizer.sanitize_extra_context(data.extra_context) if data.extra_context else None
-        
+        sanitized_context = (
+            InputSanitizer.sanitize_extra_context(data.extra_context)
+            if data.extra_context
+            else None
+        )
+
         # Check for suspicious patterns
         is_safe, warnings = InputSanitizer.is_safe_input(data.jd_text or "")
         if not is_safe:
             # ✅ SECURITY: Log suspicious patterns to security monitor
             for warning in warnings:
                 security_monitor.log_suspicious_pattern(
-                    ip=request.client.host,
-                    pattern=warning,
-                    input_type="jd_text"
+                    ip=request.client.host, pattern=warning, input_type="jd_text"
                 )
-            
+
             logger.warn(
                 stage="api",
                 msg="Suspicious input detected",
                 warnings=warnings,
-                client_ip=request.client.host
+                client_ip=request.client.host,
             )
-        
+
         if not sanitized_bullets:
-            raise HTTPException(status_code=400, detail="No valid bullets provided after sanitization")
-        
+            raise HTTPException(
+                status_code=400, detail="No valid bullets provided after sanitization"
+            )
+
         job_id = str(ULID())
 
         job_input = JobInput(
@@ -684,7 +689,7 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
 
         # ✅ SECURITY: Track successful request for cost monitoring
         cost_controller.track_request(model)
-        
+
         return result
 
     except Exception as e:
@@ -697,27 +702,20 @@ async def process_sync(request: Request, data: ProcessResumeRequest):
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler that sanitizes error messages."""
     client_ip = request.client.host if request.client else "unknown"
-    
+
     # ✅ SECURITY: Log failed requests to security monitor
-    security_monitor.log_failed_request(
-        ip=client_ip,
-        reason=str(exc),
-        endpoint=request.url.path
-    )
-    
+    security_monitor.log_failed_request(ip=client_ip, reason=str(exc), endpoint=request.url.path)
+
     # Log the full error for debugging
     logger.error(
         stage="api",
         msg=f"Unhandled error: {str(exc)}",
         error_type=type(exc).__name__,
-        client_ip=client_ip
+        client_ip=client_ip,
     )
-    
+
     # Return sanitized error message to client
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 if __name__ == "__main__":

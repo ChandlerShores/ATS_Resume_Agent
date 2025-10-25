@@ -1,6 +1,5 @@
 """Fused processor for batch rewrite + score operations in a single LLM call."""
 
-
 from ops.llm_client import get_llm_client
 from schemas.models import BulletDiff, BulletResult, BulletScores, JDSignals, JobSettings
 
@@ -63,43 +62,39 @@ Score each bullet on:
 
 class FusedProcessor:
     """Agent for batch processing bullets with rewrite + score in one LLM call."""
-    
+
     def __init__(self, llm_client=None):
         self.llm_client = llm_client or get_llm_client()
-    
+
     def process_batch(
-        self, 
-        bullets: list[str], 
-        role: str, 
-        jd_signals: JDSignals, 
-        settings: JobSettings
+        self, bullets: list[str], role: str, jd_signals: JDSignals, settings: JobSettings
     ) -> list[BulletResult]:
         """
         Process multiple bullets in a single batch LLM call.
-        
+
         Args:
             bullets: List of original bullet texts
             role: Target role/position
             jd_signals: Extracted JD signals
             settings: Job settings (tone, max_words, etc.)
-            
+
         Returns:
             List of BulletResult objects
         """
         from ops.logging import logger
-        
+
         if not bullets:
             return []
-        
+
         # Prepare bullets text
         bullets_text = "\n".join([f"{i+1}. {bullet}" for i, bullet in enumerate(bullets)])
-        
+
         # Prepare JD signals for prompt
         top_terms = ", ".join(jd_signals.top_terms[:15])  # Limit to top 15
         soft_skills = ", ".join(jd_signals.soft_skills[:10])
         hard_tools = ", ".join(jd_signals.hard_tools[:10])
         domain_terms = ", ".join(jd_signals.domain_terms[:10])
-        
+
         # Create user prompt
         user_prompt = USER_PROMPT_TEMPLATE.format(
             role=role,
@@ -109,21 +104,21 @@ class FusedProcessor:
             domain_terms=domain_terms,
             tone=settings.tone,
             max_words=settings.max_len,
-            bullets_text=bullets_text
+            bullets_text=bullets_text,
         )
-        
+
         try:
             # Call LLM for batch processing
             response = self.llm_client.complete_json(
                 system_prompt=SYSTEM_PROMPT,
                 user_prompt=user_prompt,
-                temperature=0.3  # Lower temperature for more consistent results
+                temperature=0.3,  # Lower temperature for more consistent results
             )
-            
+
             # Parse results
             results = []
             llm_results = response.get("results", [])
-            
+
             for i, bullet in enumerate(bullets):
                 # Find corresponding LLM result
                 llm_result = None
@@ -131,21 +126,21 @@ class FusedProcessor:
                     if result.get("bullet_index") == i:
                         llm_result = result
                         break
-                
+
                 if llm_result:
                     # Create BulletResult from LLM response
                     scores = BulletScores(
                         relevance=llm_result.get("scores", {}).get("relevance", 50),
                         impact=llm_result.get("scores", {}).get("impact", 50),
-                        clarity=llm_result.get("scores", {}).get("clarity", 50)
+                        clarity=llm_result.get("scores", {}).get("clarity", 50),
                     )
-                    
+
                     bullet_result = BulletResult(
                         original=bullet,
                         revised=[llm_result.get("revised", bullet)],
                         scores=scores,
                         notes=llm_result.get("rationale", "No rationale provided"),
-                        diff=BulletDiff(removed=[], added_terms=[])  # Will be computed later
+                        diff=BulletDiff(removed=[], added_terms=[]),  # Will be computed later
                     )
                 else:
                     # Fallback: create minimal result if LLM didn't process this bullet
@@ -155,37 +150,35 @@ class FusedProcessor:
                         revised=[bullet],  # Keep original
                         scores=scores,
                         notes="Failed to process in batch",
-                        diff=BulletDiff(removed=[], added_terms=[])
+                        diff=BulletDiff(removed=[], added_terms=[]),
                     )
-                
+
                 results.append(bullet_result)
-            
+
             logger.info(
                 stage="fused_processor",
                 msg=f"Batch processed {len(bullets)} bullets",
                 bullets_processed=len(results),
-                llm_results_count=len(llm_results)
+                llm_results_count=len(llm_results),
             )
-            
+
             return results
-            
+
         except Exception as e:
-            logger.warn(
-                stage="fused_processor",
-                msg=f"Batch processing failed: {e}",
-                error=str(e)
-            )
-            
+            logger.warn(stage="fused_processor", msg=f"Batch processing failed: {e}", error=str(e))
+
             # Fallback: create minimal results for all bullets
             fallback_results = []
             for bullet in bullets:
                 scores = BulletScores(relevance=50, impact=50, clarity=50)
-                fallback_results.append(BulletResult(
-                    original=bullet,
-                    revised=[bullet],  # Keep original
-                    scores=scores,
-                    notes=f"Batch processing failed: {str(e)}",
-                    diff=BulletDiff(removed=[], added_terms=[])
-                ))
-            
+                fallback_results.append(
+                    BulletResult(
+                        original=bullet,
+                        revised=[bullet],  # Keep original
+                        scores=scores,
+                        notes=f"Batch processing failed: {str(e)}",
+                        diff=BulletDiff(removed=[], added_terms=[]),
+                    )
+                )
+
             return fallback_results

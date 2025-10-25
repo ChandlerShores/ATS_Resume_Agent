@@ -53,19 +53,22 @@ class StateMachine:
         self.fused_processor = FusedProcessor()
         self.redis_cache = get_jd_cache()
         self.scorer = self._create_scorer()
-    
+
     def _create_scorer(self):
         """Create a simple scorer for coverage computation."""
+
         class SimpleScorer:
             def compute_coverage(self, all_revised_bullets, jd_signals):
                 """Compute basic coverage analysis."""
                 from schemas.models import Coverage
+
                 # Combine all revised bullet text
                 all_text = " ".join(all_revised_bullets).lower()
                 # Find hit/miss terms
                 hit = [term for term in jd_signals.top_terms if term.lower() in all_text]
                 miss = [term for term in jd_signals.top_terms if term.lower() not in all_text]
                 return Coverage(hit=hit, miss=miss)
+
         return SimpleScorer()
 
     def execute(self, input_data: dict[str, Any]) -> dict[str, Any]:
@@ -84,6 +87,7 @@ class StateMachine:
         # Generate job_id if missing
         if not job_input.job_id:
             from ulid import ULID
+
             job_input.job_id = str(ULID())
 
         # Initialize state
@@ -138,7 +142,7 @@ class StateMachine:
         # Get JD text (manual text input only)
         if not state.input_data.jd_text:
             raise ValueError("jd_text is required")
-        
+
         state.jd_text = state.input_data.jd_text
 
         # Normalize JD
@@ -191,22 +195,22 @@ class StateMachine:
                 stage="EXTRACT_SIGNALS",
                 msg=f"Retrieved cached JD signals with {len(state.jd_signals.top_terms)} terms",
                 job_id=state.job_id,
-                cache_hit=True
+                cache_hit=True,
             )
             state.add_log(log_entry)
         else:
             # Parse JD using hybrid approach (local + LLM fallback)
             state.jd_signals = self.jd_parser.parse(jd_text=state.jd_text)
-            
+
             # Cache result
             self.redis_cache.set(state.jd_hash, state.jd_signals)
-            
+
             log_entry = logger.info(
                 stage="EXTRACT_SIGNALS",
                 msg=f"Extracted {len(state.jd_signals.top_terms)} key terms and cached result",
                 job_id=state.job_id,
                 top_terms=state.jd_signals.top_terms[:5],
-                cache_hit=False
+                cache_hit=False,
             )
             state.add_log(log_entry)
 
@@ -234,12 +238,12 @@ class StateMachine:
             bullets=state.achievement_bullets,
             role=state.input_data.role,
             jd_signals=state.jd_signals,
-            settings=state.input_data.settings
+            settings=state.input_data.settings,
         )
 
         # Add skill bullets and metadata bullets as-is
         from schemas.models import BulletScores
-        
+
         # Add skill bullets (preserve as-is with basic scores)
         for skill_bullet in state.skill_bullets:
             bullet_result = BulletResult(
@@ -247,7 +251,7 @@ class StateMachine:
                 revised=[skill_bullet],
                 scores=BulletScores(relevance=50, impact=50, clarity=50),
                 notes="Skill bullet preserved as-is",
-                diff=BulletDiff(removed=[], added_terms=[])
+                diff=BulletDiff(removed=[], added_terms=[]),
             )
             state.scored_results.append(bullet_result)
 
@@ -258,7 +262,7 @@ class StateMachine:
                 revised=[metadata_bullet],
                 scores=BulletScores(relevance=50, impact=50, clarity=50),
                 notes="Metadata bullet preserved as-is",
-                diff=BulletDiff(removed=[], added_terms=[])
+                diff=BulletDiff(removed=[], added_terms=[]),
             )
             state.scored_results.append(bullet_result)
 

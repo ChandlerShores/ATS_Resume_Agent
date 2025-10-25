@@ -11,9 +11,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-print("="*70)
+print("=" * 70)
 print("ATS RESUME AGENT - FULL WORKFLOW TEST")
-print("="*70)
+print("=" * 70)
 
 # Check for API keys
 print("\n1. Checking API Configuration...")
@@ -32,6 +32,7 @@ print(f"✅ Provider: {provider}")
 print("\n2. Loading modules...")
 try:
     from orchestrator.state_machine import StateMachine
+
     print("✅ Modules loaded successfully")
 except ImportError as e:
     print(f"❌ Failed to load modules: {e}")
@@ -54,13 +55,9 @@ test_input = {
     "bullets": [
         "Built REST APIs using Python and FastAPI framework",
         "Deployed applications to cloud infrastructure",
-        "Created automated testing pipelines"
+        "Created automated testing pipelines",
     ],
-    "settings": {
-        "tone": "concise",
-        "max_len": 30,
-        "variants": 2
-    }
+    "settings": {"tone": "concise", "max_len": 30, "variants": 2},
 }
 
 print("✅ Test input created:")
@@ -91,19 +88,20 @@ try:
 except Exception as e:
     print(f"❌ Workflow failed: {e}")
     import traceback
+
     traceback.print_exc()
     exit(1)
 
 # Display results
-print("\n" + "="*70)
+print("\n" + "=" * 70)
 print("RESULTS")
-print("="*70)
+print("=" * 70)
 
 print(f"\nJob ID: {result['job_id']}")
 print(f"Role: {result['summary']['role']}")
 
 print(f"\nTop JD Terms ({len(result['summary']['top_terms'])}):")
-for term in result['summary']['top_terms'][:10]:
+for term in result["summary"]["top_terms"][:10]:
     print(f"  • {term}")
 
 print("\nCoverage:")
@@ -111,40 +109,40 @@ print(f"  Hit: {len(result['summary']['coverage']['hit'])} terms")
 print(f"  Miss: {len(result['summary']['coverage']['miss'])} terms")
 
 print(f"\n{len(result['results'])} Bullets Revised:")
-print("-"*70)
+print("-" * 70)
 
-for i, bullet_result in enumerate(result['results'], 1):
+for i, bullet_result in enumerate(result["results"], 1):
     print(f"\n[{i}] ORIGINAL:")
     print(f"    {bullet_result['original']}")
-    
+
     print("\n    REVISED VARIANTS:")
-    for j, revised in enumerate(bullet_result['revised'], 1):
+    for j, revised in enumerate(bullet_result["revised"], 1):
         print(f"    {j}. {revised}")
-    
-    scores = bullet_result['scores']
+
+    scores = bullet_result["scores"]
     print("\n    SCORES:")
     print(f"    • Relevance: {scores['relevance']}/100")
     print(f"    • Impact:    {scores['impact']}/100")
     print(f"    • Clarity:   {scores['clarity']}/100")
-    
-    if bullet_result.get('notes'):
+
+    if bullet_result.get("notes"):
         print(f"\n    NOTES: {bullet_result['notes']}")
 
-if result.get('red_flags'):
+if result.get("red_flags"):
     print(f"\n⚠️  Red Flags ({len(result['red_flags'])}):")
-    for flag in result['red_flags']:
+    for flag in result["red_flags"]:
         print(f"  • {flag}")
 else:
     print("\n✅ No red flags detected")
 
 # Save results
 output_file = "test_output.json"
-with open(output_file, 'w') as f:
+with open(output_file, "w") as f:
     json.dump(result, f, indent=2)
 
-print("\n" + "="*70)
+print("\n" + "=" * 70)
 print("✅ TEST PASSED - Full workflow working correctly!")
-print("="*70)
+print("=" * 70)
 print(f"\nFull results saved to: {output_file}")
 print("\nKey Validations:")
 print("  ✅ LLM API calls working")
@@ -153,4 +151,3 @@ print("  ✅ Bullets being rewritten")
 print("  ✅ Scoring system functional")
 print("  ✅ Validation passing")
 print("\n🚀 Your API is ready for production!")
-

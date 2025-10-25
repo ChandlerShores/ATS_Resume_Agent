@@ -13,19 +13,29 @@ class JobSettings(BaseModel):
 
     tone: str = Field(default="concise", description="Writing tone")
     max_len: int = Field(default=30, ge=1, le=100, description="Max words per bullet")
-    variants: int = Field(default=1, ge=1, le=3, description="Number of variants to generate")  # REDUCED: Default 1, max 3
+    variants: int = Field(
+        default=1, ge=1, le=3, description="Number of variants to generate"
+    )  # REDUCED: Default 1, max 3
 
 
 class JobInput(BaseModel):
     """Input schema for a resume bullet revision job."""
 
-    role: str = Field(..., max_length=200, description="Target role/position")  # ✅ SECURITY: Length limit
-    jd_text: str = Field(..., max_length=50000, description="Job description text")  # ✅ SECURITY: 50KB limit
-    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")  # ✅ SECURITY: Max 20 bullets
+    role: str = Field(
+        ..., max_length=200, description="Target role/position"
+    )  # ✅ SECURITY: Length limit
+    jd_text: str = Field(
+        ..., max_length=50000, description="Job description text"
+    )  # ✅ SECURITY: 50KB limit
+    bullets: list[str] = Field(
+        ..., min_length=1, max_length=20, description="Resume bullets to revise"
+    )  # ✅ SECURITY: Max 20 bullets
     metrics: dict[str, Any] | None = Field(
         None, description="Quantifiable metrics (optional, per-bullet metrics used instead)"
     )
-    extra_context: str | None = Field(None, max_length=5000, description="Additional context")  # ✅ SECURITY: 5KB limit
+    extra_context: str | None = Field(
+        None, max_length=5000, description="Additional context"
+    )  # ✅ SECURITY: 5KB limit
     settings: JobSettings = Field(default_factory=JobSettings)
     job_id: str | None = Field(None, description="ULID job identifier")
 
@@ -41,7 +51,6 @@ class JobInput(BaseModel):
                 cleaned_bullet = bullet.strip()[:1000]
                 cleaned_bullets.append(cleaned_bullet)
         return cleaned_bullets
-
 
 
 # ===== Output Models =====
@@ -178,12 +187,15 @@ class JobState(BaseModel):
 
 # ===== Bulk Processing Models =====
 
+
 class CandidateInput(BaseModel):
     """Input for a single candidate in bulk processing."""
-    
+
     candidate_id: str = Field(..., max_length=100, description="Unique candidate identifier")
-    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")
-    
+    bullets: list[str] = Field(
+        ..., min_length=1, max_length=20, description="Resume bullets to revise"
+    )
+
     @field_validator("bullets")
     @classmethod
     def bullets_not_empty(cls, v: list[str]) -> list[str]:
@@ -199,15 +211,17 @@ class CandidateInput(BaseModel):
 
 class BulkProcessRequest(BaseModel):
     """Request schema for bulk resume processing."""
-    
+
     job_description: str = Field(..., max_length=50000, description="Job description text")
-    candidates: list[CandidateInput] = Field(..., min_length=1, max_length=50, description="List of candidates to process")
+    candidates: list[CandidateInput] = Field(
+        ..., min_length=1, max_length=50, description="List of candidates to process"
+    )
     settings: JobSettings = Field(default_factory=JobSettings)
 
 
 class CandidateResult(BaseModel):
     """Result for a single candidate in bulk processing."""
-    
+
     candidate_id: str
     status: str = Field(..., description="processing|completed|failed")
     results: list[BulletResult] = Field(default_factory=list)
@@ -217,7 +231,7 @@ class CandidateResult(BaseModel):
 
 class BulkProcessResponse(BaseModel):
     """Response schema for bulk processing status/results."""
-    
+
     job_id: str
     status: str = Field(..., description="processing|completed|failed")
     total_candidates: int
@@ -228,9 +242,10 @@ class BulkProcessResponse(BaseModel):
 
 # ===== Customer Management Models =====
 
+
 class Customer(BaseModel):
     """Customer model for API key management."""
-    
+
     customer_id: str = Field(..., description="Unique customer identifier")
     api_key: str = Field(..., description="API key for authentication")
     name: str = Field(..., description="Customer name")
@@ -240,9 +255,11 @@ class Customer(BaseModel):
 
 class UsageRecord(BaseModel):
     """Usage tracking record for a customer on a specific date."""
-    
+
     customer_id: str = Field(..., description="Customer identifier")
     date: str = Field(..., description="Date in YYYY-MM-DD format")
     request_count: int = Field(default=0, description="Number of requests on this date")
     total_bullets: int = Field(default=0, description="Total bullets processed on this date")
-    last_request: datetime = Field(default_factory=datetime.utcnow, description="Last request timestamp")
+    last_request: datetime = Field(
+        default_factory=datetime.utcnow, description="Last request timestamp"
+    )
