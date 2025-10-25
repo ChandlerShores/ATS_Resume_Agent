@@ -1,5 +1,5 @@
 {
-  "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD",
+  "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R",
   "summary": {
     "role": "Senior Software Engineer",
     "top_terms": [
@@ -23,14 +23,14 @@
     {
       "original": "Built REST APIs using Python and FastAPI framework",
       "revised": [
-        "Developed scalable REST APIs using Python and FastAPI, enhancing application performance by 30%."
+        "Developed high-performance REST APIs leveraging Python and FastAPI, enhancing application efficiency by 30%."
       ],
       "scores": {
         "relevance": 90,
-        "impact": 80,
+        "impact": 85,
         "clarity": 95
       },
-      "notes": "Changed 'built' to 'developed' for a stronger action verb and added quantifiable impact to emphasize performance improvement.",
+      "notes": "Changed 'Built' to 'Developed' for stronger action. Added quantifiable impact to demonstrate effectiveness.",
       "diff": {
         "removed": [],
         "added_terms": []
@@ -39,14 +39,14 @@
     {
       "original": "Deployed applications to cloud infrastructure",
       "revised": [
-        "Implemented deployment of applications on Azure and AWS, ensuring 99.9% uptime and reliability."
+        "Implemented CI/CD pipelines for seamless deployment of applications on AWS and GCP, reducing deployment time by 40%."
       ],
       "scores": {
-        "relevance": 85,
-        "impact": 85,
-        "clarity": 90
+        "relevance": 95,
+        "impact": 90,
+        "clarity": 92
       },
-      "notes": "Specified cloud platforms (Azure and AWS) to align with JD keywords and added uptime metric for greater impact.",
+      "notes": "Specified CI/CD and cloud platforms to align with JD keywords. Quantified impact to show efficiency improvements.",
       "diff": {
         "removed": [],
         "added_terms": []
@@ -55,14 +55,14 @@
     {
       "original": "Created automated testing pipelines",
       "revised": [
-        "Engineered CI/CD automated testing pipelines, reducing deployment time by 40% and increasing code quality."
+        "Engineered automated testing pipelines using Docker and Flask, increasing test coverage by 50% and reducing bugs in production."
       ],
       "scores": {
-        "relevance": 88,
-        "impact": 90,
-        "clarity": 92
+        "relevance": 90,
+        "impact": 88,
+        "clarity": 93
       },
-      "notes": "Used 'engineered' for a more impactful verb and quantified the reduction in deployment time to highlight effectiveness.",
+      "notes": "Used 'Engineered' for a stronger verb. Included specific tools and quantifiable results to enhance relevance and impact.",
       "diff": {
         "removed": [],
         "added_terms": []
@@ -70,74 +70,77 @@
     }
   ],
   "red_flags": [
-    "hard_tool_fabrication: Added Azure and AWS which weren't in original",
-    "borrowed_metric: Added 30% enhancement to application performance which isn't in the original",
-    "borrowed_metric: Added 99.9% uptime and reliability which isn't in original",
-    "borrowed_metric: Added 40% reduction in deployment time which isn't in the original bullet"
+    "hard_tool_fabrication: Added CI/CD which wasn't in original",
+    "borrowed_metric: Added enhancing application efficiency by 30% which isn't in original",
+    "borrowed_metric: Added 40% reduction in deployment time which isn't in original",
+    "hard_tool_fabrication: Added Docker and Flask which weren't in original",
+    "borrowed_metric: Added 50% increase in test coverage which isn't in original",
+    "hard_tool_fabrication: Added GCP which wasn't in original",
+    "hard_tool_fabrication: Added AWS which wasn't in original"
   ],
   "logs": [
     {
-      "ts": "2025-10-25T19:00:10.267569Z",
+      "ts": "2025-10-25T19:59:45.817729Z",
       "level": "info",
       "stage": "INGEST",
       "msg": "Starting ingestion",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:10.269089Z",
+      "ts": "2025-10-25T19:59:45.819486Z",
       "level": "info",
       "stage": "INGEST",
       "msg": "Ingested 3 bullets",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:10.269300Z",
+      "ts": "2025-10-25T19:59:45.820117Z",
       "level": "info",
       "stage": "EXTRACT_SIGNALS",
       "msg": "Extracting JD signals",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:13.165913Z",
+      "ts": "2025-10-25T19:59:48.555894Z",
       "level": "info",
       "stage": "EXTRACT_SIGNALS",
       "msg": "Extracted 4 key terms and cached result",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:13.166047Z",
+      "ts": "2025-10-25T19:59:48.556027Z",
       "level": "info",
       "stage": "PROCESS",
       "msg": "Processing 3 bullets with fused processor",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:27.137425Z",
+      "ts": "2025-10-25T19:59:57.590162Z",
       "level": "info",
       "stage": "PROCESS",
       "msg": "Processed 3 bullets total",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:27.137943Z",
+      "ts": "2025-10-25T19:59:57.590381Z",
       "level": "info",
       "stage": "VALIDATE",
       "msg": "Validating bullets",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:36.153945Z",
+      "ts": "2025-10-25T20:00:05.381971Z",
       "level": "info",
       "stage": "VALIDATE",
-      "msg": "Validation complete, 4 flags raised",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "msg": "Validation complete, 7 flags raised",
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     },
     {
-      "ts": "2025-10-25T19:00:36.154177Z",
+      "ts": "2025-10-25T20:00:05.382382Z",
       "level": "info",
       "stage": "OUTPUT",
       "msg": "Assembling output",
-      "job_id": "01K8EBW4WVXH36Y5G5J9TPVFCD"
+      "job_id": "01K8EF98MRBFXRZGSMSPMVJQ4R"
     }
   ]
 }

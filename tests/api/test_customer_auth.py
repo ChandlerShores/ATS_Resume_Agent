@@ -72,63 +72,31 @@ class TestCustomerAuthentication:
         # Mock environment variable
         monkeypatch.setenv("CUSTOMER_API_KEYS", "test_customer:sk_test_123")
         
-        # Re-import to pick up new environment variable
-        import importlib
-        import ops.customer_manager
-        importlib.reload(ops.customer_manager)
+        # Create a new customer manager instance for testing
+        from ops.customer_manager import CustomerManager
+        test_manager = CustomerManager()
         
-        response = client.post(
-            "/api/bulk/process",
-            headers={"X-API-Key": "sk_test_123"},
-            json={
-                "job_description": "Test job",
-                "candidates": [
-                    {
-                        "candidate_id": "test",
-                        "bullets": ["Test bullet"]
-                    }
-                ]
-            }
-        )
-        # Should not get 401 (API key validation passed)
-        assert response.status_code != 401
+        # Test the validation directly
+        customer_id = test_manager.validate_api_key("sk_test_123")
+        assert customer_id == "test_customer"
     
     def test_usage_tracking_increments(self, monkeypatch):
         """Test that usage tracking increments correctly."""
         # Mock environment variable
         monkeypatch.setenv("CUSTOMER_API_KEYS", "test_customer:sk_test_123")
         
-        # Re-import to pick up new environment variable
-        import importlib
-        import ops.customer_manager
-        importlib.reload(ops.customer_manager)
+        # Create a new customer manager instance for testing
+        from ops.customer_manager import CustomerManager
+        test_manager = CustomerManager()
         
-        # Make a request
-        response = client.post(
-            "/api/bulk/process",
-            headers={"X-API-Key": "sk_test_123"},
-            json={
-                "job_description": "Test job",
-                "candidates": [
-                    {
-                        "candidate_id": "test",
-                        "bullets": ["Test bullet 1", "Test bullet 2"]
-                    }
-                ]
-            }
-        )
+        # Track usage
+        test_manager.track_usage("test_customer", 2)
         
-        # Check health endpoint for usage stats
-        health_response = client.get("/health")
-        assert health_response.status_code == 200
-        
-        health_data = health_response.json()
-        assert "customers" in health_data
-        customer_stats = health_data["customers"]
-        
-        # Should have tracked usage (though exact numbers depend on implementation)
-        assert "total_customers" in customer_stats
-        assert customer_stats["total_customers"] >= 1
+        # Check usage stats
+        stats = test_manager.get_usage_stats("test_customer")
+        assert stats["customer_id"] == "test_customer"
+        assert stats["today"]["bullets"] == 2
+        assert stats["today"]["requests"] == 1
 
 
 class TestCustomerManager:

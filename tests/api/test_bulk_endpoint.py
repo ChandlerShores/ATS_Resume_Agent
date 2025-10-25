@@ -9,7 +9,23 @@ from fastapi.testclient import TestClient
 from api.main import app
 from schemas.models import BulkProcessRequest, CandidateInput, JobSettings
 
+# Set up test client
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def setup_test_api_keys(monkeypatch):
+    """Set up test API keys for all tests."""
+    # Mock the customer manager validation
+    from unittest.mock import patch
+    
+    def mock_validate_api_key(api_key):
+        if api_key == "test_key":
+            return "test_customer"
+        raise ValueError("Invalid API key")
+    
+    # Patch the customer manager validation
+    with patch('ops.customer_manager.customer_manager.validate_api_key', side_effect=mock_validate_api_key):
+        yield
 
 
 class TestBulkProcessing:
@@ -119,8 +135,10 @@ class TestBulkProcessing:
             }
         }
         
-        # Make request
-        response = client.post("/api/bulk/process", json=test_request)
+        # Make request with API key
+        response = client.post("/api/bulk/process", 
+                              headers={"X-API-Key": "test_key"}, 
+                              json=test_request)
         
         # Verify response structure
         assert response.status_code == 200
@@ -134,14 +152,16 @@ class TestBulkProcessing:
     def test_bulk_status_endpoint_structure(self):
         """Test that bulk status endpoint has correct structure."""
         # Test with non-existent job ID
-        response = client.get("/api/bulk/status/non-existent-job-id")
+        response = client.get("/api/bulk/status/non-existent-job-id",
+                            headers={"X-API-Key": "test_key"})
         assert response.status_code == 404
         assert "Job not found" in response.json()["detail"]
     
     def test_bulk_results_endpoint_structure(self):
         """Test that bulk results endpoint has correct structure."""
         # Test with non-existent job ID
-        response = client.get("/api/bulk/results/non-existent-job-id")
+        response = client.get("/api/bulk/results/non-existent-job-id",
+                            headers={"X-API-Key": "test_key"})
         assert response.status_code == 404
         assert "Job not found" in response.json()["detail"]
     
