@@ -4,12 +4,10 @@ import os
 import re
 from typing import Tuple
 
-import httpx
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from ops.llm_client import get_llm_client
-from ops.retry import RetryableError, retry_with_backoff
 from schemas.models import JDSignals
 
 SYSTEM_PROMPT = """You are an expert at analyzing job descriptions and extracting key competencies, skills, and keywords.
@@ -254,48 +252,6 @@ class JDParser:
             # Return empty signals with 0 confidence
             return JDSignals(), 0.0
 
-    @retry_with_backoff(max_retries=3, exceptions=(httpx.HTTPError, RetryableError))
-    def fetch_jd_from_url(self, url: str, use_scraper: bool = True) -> str:
-        """
-        Fetch job description from URL.
-
-        Args:
-            url: URL to fetch JD from
-            use_scraper: Use LLM-powered scraper (default True) for clean extraction,
-                        or False for raw HTML (backward compatible)
-
-        Returns:
-            str: Fetched JD text
-
-        Raises:
-            RetryableError: If fetch fails
-        """
-        if use_scraper:
-            # Use LLM-powered scraper for clean extraction
-            try:
-                from ops.job_board_scraper import scrape_job_posting
-
-                scraped = scrape_job_posting(url)
-                return scraped["jd_text"]
-            except Exception as e:
-                # If scraping fails, log and fall back to raw HTML
-                from ops.logging import logger
-
-                logger.warn(
-                    stage="jd_parser",
-                    msg=f"Scraping failed, falling back to raw HTML: {e}",
-                    url=url,
-                )
-                # Fall through to raw HTML fetch
-
-        # Fallback: raw HTML fetch (backward compatible)
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                response = client.get(url, follow_redirects=True)
-                response.raise_for_status()
-                return response.text
-        except httpx.HTTPError as e:
-            raise RetryableError(f"Failed to fetch JD from {url}: {e}")
 
     def normalize_text(self, text: str) -> str:
         """
@@ -337,28 +293,23 @@ class JDParser:
             domain_terms=response.get("domain_terms", []),
         )
 
-    def parse(self, jd_text: str | None = None, jd_url: str | None = None) -> JDSignals:
+    def parse(self, jd_text: str) -> JDSignals:
         """
         Parse job description and extract signals using hybrid approach.
 
         Args:
             jd_text: Job description text
-            jd_url: URL to fetch JD from (if jd_text not provided)
 
         Returns:
             JDSignals: Extracted signals
 
         Raises:
-            ValueError: If neither jd_text nor jd_url provided
+            ValueError: If jd_text is empty
         """
         from ops.logging import logger
         
-        # Get JD text
-        if jd_url:
-            jd_text = self.fetch_jd_from_url(jd_url)
-
         if not jd_text:
-            raise ValueError("Either jd_text or jd_url must be provided")
+            raise ValueError("jd_text must be provided")
 
         # Normalize
         normalized_jd = self.normalize_text(jd_text)

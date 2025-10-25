@@ -1,4 +1,4 @@
-"""VALIDATOR agent: Checks for grammar, active voice, PII, and unsupported claims."""
+"""VALIDATOR agent: Checks for PII and unsupported claims."""
 
 import re
 
@@ -10,39 +10,14 @@ EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
 PHONE_PATTERN = re.compile(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b")
 SSN_PATTERN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
 
-# Filler phrases to remove
-FILLER_PHRASES = [
-    "responsible for",
-    "duties included",
-    "tasked with",
-    "in charge of",
-    "helped to",
-    "worked on",
-    "involved in",
-    "participated in",
-]
-
-# Passive voice indicators
-PASSIVE_INDICATORS = [
-    "was responsible",
-    "were responsible",
-    "was tasked",
-    "were tasked",
-    "was assigned",
-    "were assigned",
-]
-
 
 SYSTEM_PROMPT = """You are a resume quality control expert.
 
 Check bullets for:
-1. Active voice (avoid passive constructions)
-2. No filler phrases ("responsible for", "duties included")
-3. No unsupported/vague claims ("highly skilled", "expert level" without evidence)
-4. Proper grammar and punctuation
-5. No new facts beyond the original bullet
+1. No unsupported/vague claims ("highly skilled", "expert level" without evidence)
+2. No new facts beyond the original bullet
 
-Flag issues but only apply SAFE fixes (grammar, filler removal).
+Flag issues but only apply SAFE fixes.
 Do NOT modify facts or add new information."""
 
 
@@ -52,10 +27,7 @@ Original: {original}
 Revised: {revised}
 
 Check for:
-- Active voice (flag passive constructions)
-- Filler phrases
 - Unsupported claims (new facts not in original)
-- Grammar/punctuation errors
 - Vague outcomes
 
 Return JSON:
@@ -68,26 +40,10 @@ Return JSON:
 
 
 class Validator:
-    """Agent for validating and fixing bullet quality issues."""
+    """Agent for validating PII and factual consistency."""
 
     def __init__(self, llm_client=None):
         self.llm_client = llm_client or get_llm_client()
-        self._language_tool = None
-
-    def _get_language_tool(self):
-        """Get LanguageTool instance with lazy loading."""
-        if self._language_tool is None:
-            try:
-                import language_tool_python
-                self._language_tool = language_tool_python.LanguageTool('en-US')
-            except Exception as e:
-                from ops.logging import logger
-                logger.warn(
-                    stage="validator",
-                    msg=f"LanguageTool initialization failed: {e}"
-                )
-                self._language_tool = False  # Mark as failed to avoid retries
-        return self._language_tool if self._language_tool is not False else None
 
     def check_pii(self, text: str) -> list[str]:
         """
@@ -112,69 +68,6 @@ class Validator:
 
         return issues
 
-    def check_filler(self, text: str) -> list[str]:
-        """
-        Check for filler phrases.
-
-        Args:
-            text: Text to check
-
-        Returns:
-            List[str]: Filler phrases found
-        """
-        text_lower = text.lower()
-        found = []
-
-        for filler in FILLER_PHRASES:
-            if filler in text_lower:
-                found.append(f"Filler phrase: '{filler}'")
-
-        return found
-
-    def check_passive_voice(self, text: str) -> list[str]:
-        """
-        Check for passive voice indicators.
-
-        Args:
-            text: Text to check
-
-        Returns:
-            List[str]: Passive voice issues
-        """
-        text_lower = text.lower()
-        found = []
-
-        for passive in PASSIVE_INDICATORS:
-            if passive in text_lower:
-                found.append(f"Passive phrasing: '{passive}'")
-
-        return found
-
-    def remove_filler(self, text: str) -> str:
-        """
-        Remove filler phrases from text.
-
-        Args:
-            text: Original text
-
-        Returns:
-            str: Text with filler removed
-        """
-        result = text
-
-        for filler in FILLER_PHRASES:
-            # Case-insensitive replacement
-            pattern = re.compile(re.escape(filler), re.IGNORECASE)
-            result = pattern.sub("", result)
-
-        # Clean up extra spaces
-        result = re.sub(r"\s+", " ", result).strip()
-
-        # Capitalize first letter if needed
-        if result and result[0].islower():
-            result = result[0].upper() + result[1:]
-
-        return result
 
     def _check_factual_consistency_llm(
         self, original: str, revised: str, jd_signals=None
@@ -256,16 +149,16 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
         self, original: str, revised: str, apply_fixes: bool = True, jd_signals=None
     ) -> ValidationResult:
         """
-        Validate a revised bullet using local processing (LanguageTool + rule-based checks).
+        Validate a revised bullet using PII detection and factual consistency checking.
 
         Args:
             original: Original bullet
             revised: Revised bullet
-            apply_fixes: Whether to apply safe fixes
+            apply_fixes: Whether to apply safe fixes (currently unused)
             jd_signals: JD signals with categorized keywords (optional)
 
         Returns:
-            ValidationResult: Validation results with fixes
+            ValidationResult: Validation results with flags
         """
         from ops.logging import logger
         
@@ -277,49 +170,10 @@ If consistent, return: {{"is_consistent": true, "violations": []}}"""
         pii_issues = self.check_pii(revised)
         flags.extend(pii_issues)
 
-        # 2. Check filler phrases
-        filler_issues = self.check_filler(revised)
-        flags.extend(filler_issues)
-
-        # 3. Check passive voice
-        passive_issues = self.check_passive_voice(revised)
-        flags.extend(passive_issues)
-
-        # 4. Grammar check using LanguageTool
-        language_tool = self._get_language_tool()
-        if language_tool:
-            try:
-                matches = language_tool.check(revised)
-                if matches:
-                    # Only show top 3 grammar issues to avoid overwhelming
-                    grammar_flags = [f"Grammar: {m.message[:50]}..." for m in matches[:3]]
-                    flags.extend(grammar_flags)
-                    
-                    if apply_fixes:
-                        corrected = language_tool.correct(revised)
-                        fixes.append("Applied LanguageTool grammar corrections")
-            except Exception as e:
-                logger.warn(
-                    stage="validator",
-                    msg=f"LanguageTool grammar check failed: {e}"
-                )
-
-        # 5. Active voice enforcement
-        words = corrected.split()
-        if words:
-            first_word = words[0]
-            if not first_word[0].isupper() or first_word.endswith('ed'):
-                flags.append("Weak action verb - consider stronger active voice")
-
-        # 6. LLM-based factual consistency check (keep this for hard tool validation)
+        # 2. LLM-based factual consistency check (keep this for hard tool validation)
         if jd_signals:
             consistency_flags = self._check_factual_consistency_llm(original, revised, jd_signals)
             flags.extend(consistency_flags)
-
-        # Apply safe fixes
-        if apply_fixes and filler_issues:
-            corrected = self.remove_filler(corrected)
-            fixes.append("Removed filler phrases")
 
         # Determine overall OK status
         ok = len(flags) == 0

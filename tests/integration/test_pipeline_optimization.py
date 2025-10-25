@@ -3,6 +3,7 @@
 import json
 import time
 from typing import Dict, Any
+from unittest.mock import patch
 
 import pytest
 
@@ -166,12 +167,12 @@ class TestPipelineOptimization:
             assert len(result.notes) > 0
     
     def test_validator_functionality(self, state_machine: StateMachine):
-        """Test validator functionality with LanguageTool."""
+        """Test validator functionality with PII detection and factual consistency."""
         validator = state_machine.validator
         
-        # Test validation
-        original = "I was responsible for developing web applications"
-        revised = "Developed web applications using Python and React"
+        # Test PII detection
+        original = "Contact me at john.doe@email.com or call 555-123-4567"
+        revised = "Contact me at john.doe@email.com or call 555-123-4567"
         
         validation_result, corrected_text = validator.validate(
             original=original,
@@ -184,9 +185,23 @@ class TestPipelineOptimization:
         assert hasattr(validation_result, "flags")
         assert hasattr(validation_result, "fixes")
         
-        # Verify corrected text
+        # Should detect PII
+        assert not validation_result.ok
+        assert len(validation_result.flags) > 0
+        assert any("PII" in flag for flag in validation_result.flags)
+        
+        # Test factual consistency (no PII)
+        original = "Developed web applications using Python"
+        revised = "Built scalable web applications using Python and React"
+        
+        validation_result, corrected_text = validator.validate(
+            original=original,
+            revised=revised,
+            apply_fixes=True
+        )
+        
+        # Should pass basic validation (no PII detected)
         assert len(corrected_text) > 0
-        assert corrected_text != original  # Should have been corrected
     
     def test_pipeline_state_flow(self, state_machine: StateMachine, sample_job_input: Dict[str, Any]):
         """Test that the pipeline follows the correct state flow."""
@@ -209,8 +224,11 @@ class TestPipelineOptimization:
                 assert stage in stage_names, f"Expected stage {stage} not found in logs"
     
     @pytest.mark.slow
-    def test_performance_improvement(self, state_machine: StateMachine):
+    @patch('ops.llm_client.LLMClient.complete')
+    def test_performance_improvement(self, mock_llm_complete, state_machine: StateMachine):
         """Test that the new pipeline is faster than the old approach."""
+        # Mock LLM responses to make test deterministic and fast
+        mock_llm_complete.return_value = "Mocked revised bullet with improved metrics and technical details"
         # Create a larger test case
         large_job_input = {
             "role": "Senior Software Engineer",
@@ -248,8 +266,8 @@ class TestPipelineOptimization:
         
         execution_time = end_time - start_time
         
-        # The new pipeline should handle 10 bullets in under 30 seconds
-        assert execution_time < 30, f"Pipeline took {execution_time:.2f}s for 10 bullets, expected < 30s"
+        # With mocked LLM calls, should complete in under 10 seconds
+        assert execution_time < 10, f"Pipeline took {execution_time:.2f}s for 10 bullets, expected < 10s with mocked LLM"
         
         # Verify all bullets were processed
         assert len(result["results"]) == 10

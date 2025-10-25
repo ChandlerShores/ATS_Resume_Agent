@@ -17,7 +17,6 @@ from agents.rewriter import Rewriter
 from agents.scorer import Scorer
 from agents.validator import Validator
 from agents.fused_processor import FusedProcessor
-from ops.hashing import compute_jd_hash
 from ops.logging import logger
 from ops.ulid_gen import generate_job_id
 from ops.redis_cache import get_jd_cache
@@ -48,7 +47,7 @@ class StateMachine:
     """
     Durable state machine for resume bullet revision workflow.
 
-    Executes 6 states in sequence with logging, retries, and idempotency.
+    Executes 6 states in sequence with logging and retries.
     """
 
     def __init__(self):
@@ -125,19 +124,17 @@ class StateMachine:
         log_entry = logger.info(stage="INGEST", msg="Starting ingestion", job_id=state.job_id)
         state.add_log(log_entry)
 
-        # Resolve JD text
-        if state.input_data.jd_url:
-            state.jd_text = self.jd_parser.fetch_jd_from_url(state.input_data.jd_url)
-        elif state.input_data.jd_text:
-            state.jd_text = state.input_data.jd_text
-        else:
-            raise ValueError("Either jd_text or jd_url must be provided")
+        # Get JD text (manual text input only)
+        if not state.input_data.jd_text:
+            raise ValueError("jd_text is required")
+        
+        state.jd_text = state.input_data.jd_text
 
         # Normalize JD
         state.jd_text = self.jd_parser.normalize_text(state.jd_text)
 
         # Compute JD hash
-        state.jd_hash = compute_jd_hash(state.jd_text)
+        state.jd_hash = str(hash(state.jd_text))
 
         # Normalize bullets (remove empties)
         state.normalized_bullets = [b.strip() for b in state.input_data.bullets if b.strip()]
@@ -268,7 +265,7 @@ class StateMachine:
 
     def _validate(self, state: JobState) -> State:
         """
-        VALIDATE state: Check grammar, active voice, PII, etc.
+        VALIDATE state: Check PII and factual consistency.
 
         Args:
             state: Current job state

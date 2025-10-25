@@ -1,5 +1,6 @@
 """Pydantic models for input/output validation and internal state management."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -19,8 +20,7 @@ class JobInput(BaseModel):
     """Input schema for a resume bullet revision job."""
 
     role: str = Field(..., max_length=200, description="Target role/position")  # ✅ SECURITY: Length limit
-    jd_text: str | None = Field(None, max_length=50000, description="Job description text")  # ✅ SECURITY: 50KB limit
-    jd_url: str | None = Field(None, max_length=2000, description="URL to fetch JD from")  # ✅ SECURITY: URL length limit
+    jd_text: str = Field(..., max_length=50000, description="Job description text")  # ✅ SECURITY: 50KB limit
     bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")  # ✅ SECURITY: Max 20 bullets
     metrics: dict[str, Any] | None = Field(
         None, description="Quantifiable metrics (optional, per-bullet metrics used instead)"
@@ -42,12 +42,6 @@ class JobInput(BaseModel):
                 cleaned_bullets.append(cleaned_bullet)
         return cleaned_bullets
 
-    @field_validator("jd_text", "jd_url")
-    @classmethod
-    def at_least_one_jd_source(cls, v, info):
-        """Ensure either jd_text or jd_url is provided."""
-        # This will be checked in the state machine
-        return v
 
 
 # ===== Output Models =====
@@ -180,3 +174,75 @@ class JobState(BaseModel):
     def add_log(self, log_entry: dict[str, Any]):
         """Add a log entry to the state."""
         self.logs.append(log_entry)
+
+
+# ===== Bulk Processing Models =====
+
+class CandidateInput(BaseModel):
+    """Input for a single candidate in bulk processing."""
+    
+    candidate_id: str = Field(..., max_length=100, description="Unique candidate identifier")
+    bullets: list[str] = Field(..., min_length=1, max_length=20, description="Resume bullets to revise")
+    
+    @field_validator("bullets")
+    @classmethod
+    def bullets_not_empty(cls, v: list[str]) -> list[str]:
+        """Ensure bullets are not empty strings and limit individual length."""
+        cleaned_bullets = []
+        for bullet in v:
+            if bullet and bullet.strip():
+                # Limit each bullet to 1000 characters
+                cleaned_bullet = bullet.strip()[:1000]
+                cleaned_bullets.append(cleaned_bullet)
+        return cleaned_bullets
+
+
+class BulkProcessRequest(BaseModel):
+    """Request schema for bulk resume processing."""
+    
+    job_description: str = Field(..., max_length=50000, description="Job description text")
+    candidates: list[CandidateInput] = Field(..., min_length=1, max_length=50, description="List of candidates to process")
+    settings: JobSettings = Field(default_factory=JobSettings)
+
+
+class CandidateResult(BaseModel):
+    """Result for a single candidate in bulk processing."""
+    
+    candidate_id: str
+    status: str = Field(..., description="processing|completed|failed")
+    results: list[BulletResult] = Field(default_factory=list)
+    coverage: Coverage | None = None
+    error_message: str | None = None
+
+
+class BulkProcessResponse(BaseModel):
+    """Response schema for bulk processing status/results."""
+    
+    job_id: str
+    status: str = Field(..., description="processing|completed|failed")
+    total_candidates: int
+    processed_candidates: int
+    candidates: list[CandidateResult] = Field(default_factory=list)
+    error_message: str | None = None
+
+
+# ===== Customer Management Models =====
+
+class Customer(BaseModel):
+    """Customer model for API key management."""
+    
+    customer_id: str = Field(..., description="Unique customer identifier")
+    api_key: str = Field(..., description="API key for authentication")
+    name: str = Field(..., description="Customer name")
+    is_active: bool = Field(default=True, description="Whether customer is active")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+
+
+class UsageRecord(BaseModel):
+    """Usage tracking record for a customer on a specific date."""
+    
+    customer_id: str = Field(..., description="Customer identifier")
+    date: str = Field(..., description="Date in YYYY-MM-DD format")
+    request_count: int = Field(default=0, description="Number of requests on this date")
+    total_bullets: int = Field(default=0, description="Total bullets processed on this date")
+    last_request: datetime = Field(default_factory=datetime.utcnow, description="Last request timestamp")

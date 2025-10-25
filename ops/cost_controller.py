@@ -46,6 +46,18 @@ class CostController:
         for date in old_dates:
             del self.daily_requests[date]
     
+    def can_make_request(self, model: str = "default") -> bool:
+        """Check if a request can be made without exceeding limits.
+        
+        Args:
+            model: LLM model being used
+            
+        Returns:
+            True if request is allowed, False otherwise
+        """
+        is_allowed, _ = self.check_cost_limit(model)
+        return is_allowed
+    
     def check_cost_limit(self, model: str = "default") -> tuple[bool, str]:
         """Check if request would exceed cost limits.
         
