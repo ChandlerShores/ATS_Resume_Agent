@@ -3,9 +3,8 @@ services:
     name: ats-resume-rewriter-api
     env: python
     plan: free
-    rootDir: Documents/ATS_Resume_Agent
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd Documents/ATS_Resume_Agent && pip install -r requirements.txt
+    startCommand: cd Documents/ATS_Resume_Agent && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_MODEL
         value: gpt-4o-mini
