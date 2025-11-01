@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ats-resume-rewriter-api
+    env: python
+    plan: free
+    buildCommand: python3 -m pip install --upgrade pip && python3 -m pip install -r requirements.txt
+    startCommand: python3 -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: PROMPT_VERSION
+        value: 1.0.0
+      - key: API_VERSION
+        value: 1.0.0
+      - key: SCHEMA_VERSION
+        value: 2025-11-01
+    autoDeploy: true
