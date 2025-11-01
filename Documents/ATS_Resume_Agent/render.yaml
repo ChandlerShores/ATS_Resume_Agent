@@ -3,7 +3,7 @@ services:
     name: ats-resume-rewriter-api
     env: python
     plan: free
-    buildCommand: cd Documents/ATS_Resume_Agent && pip install -r requirements.txt
+    buildCommand: pip install -r Documents/ATS_Resume_Agent/requirements.txt
     startCommand: cd Documents/ATS_Resume_Agent && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_MODEL
